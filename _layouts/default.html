@@ -1,33 +1,37 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{{ page.title }}</title>
+  <link rel="stylesheet" href="{{ 'C:\Users\Isok\Documents\LogInWeb\mi-pagina-login\_site\assets\login.css' | relative_url }}">
+  <style>
+    body {
+      background-image: url('https://t4.ftcdn.net/jpg/03/08/35/85/360_F_308358555_5ZM3bXFx7ySSPt3wek16wI3f71ySTVzO.jpg'); /* Cambia por la URL de tu imagen de fondo */
+      background-size: cover;
+    }
+  </style>
 </head>
 <body>
-  <header>
-    <nav>
+  <header class="site-header">
+    <nav class="site-nav">
       <ul>
-        <li><a href="{{ "/" | relative_url }}">Home</a></li>
-        <li><a href="{{ "/login/" | relative_url }}">Login</a></li>
-        <li><a href="{{ "/signup/" | relative_url }}">Sign Up</a></li>
+        <li><a class="page-link" href="{{ "/" | relative_url }}">Home</a></li>
+        <li><a class="page-link" href="{{ "/login/" | relative_url }}">Login</a></li>
+        <li><a class="page-link" href="{{ "/signup/" | relative_url }}">Sign Up</a></li>
       </ul>
     </nav>
   </header>
 
-  <main>
+  <main class="page-content">
+    <h1>Welcome to the Coding Dimension!</h1>
+    <img src="https://img.freepik.com/free-photo/programming-background-concept_23-2150170170.jpg" alt="Logo" class="logo"> <!-- Cambia por la URL de tu logo -->
+    <p>Programacion</p>
+    <img src="https://img.freepik.com/free-photo/programming-background-concept_23-2150170152.jpg" alt="Retro Image" class="retro-image"> <!-- Cambia por la URL de tu imagen retro -->
     {{ content }} <!-- Este es el contenido que se inserta en las páginas -->
   </main>
-  <nav>
-    <ul>
-      <li><a href="{{ "/login/" | relative_url }}">Login</a></li>
-      <li><a href="{{ "/signup/" | relative_url }}">Sign Up</a></li>
-    </ul>
-  </nav>
 
-  <footer>
+  <footer class="site-footer">
     <p>© 2024 My Jekyll Site</p>
   </footer>
 </body>
