@@ -9,6 +9,49 @@
     body {
       background-image: url('https://t4.ftcdn.net/jpg/03/08/35/85/360_F_308358555_5ZM3bXFx7ySSPt3wek16wI3f71ySTVzO.jpg'); /* Cambia por la URL de tu imagen de fondo */
       background-size: cover;
+      background-position: center;
+      margin: 0;
+      font-family: Arial, sans-serif;
+      color: #fff;
+    }
+    header, footer {
+      background-color: rgba(0, 0, 0, 0.8);
+      padding: 1rem;
+      text-align: center;
+    }
+    nav ul {
+      list-style-type: none;
+      padding: 0;
+    }
+    nav ul li {
+      display: inline;
+      margin: 0 10px;
+    }
+    nav ul li a {
+      color: #fff;
+      text-decoration: none;
+      font-weight: bold;
+    }
+    main {
+      padding: 2rem;
+      text-align: center;
+    }
+    h1, h2 {
+      margin: 0.5rem 0;
+    }
+    p {
+      margin: 0.5rem 0;
+    }
+    .logo, .retro-image {
+      width: 100%;
+      max-width: 600px;
+      height: auto;
+      margin: 20px 0;
+    }
+    footer p {
+      margin: 0;
+      font-size: 0.9rem;
+      color: #ddd;
     }
   </style>
 </head>
@@ -17,23 +60,43 @@
     <nav class="site-nav">
       <ul>
         <li><a class="page-link" href="{{ "/" | relative_url }}">Home</a></li>
-        <li><a class="page-link" href="{{ "/login/" | relative_url }}">Login</a></li>
-        <li><a class="page-link" href="{{ "/signup/" | relative_url }}">Sign Up</a></li>
-        <li><a class="page-link" href="{{ "/numbers/" | relative_url }}">Numbers AI</a></li>
       </ul>
     </nav>
   </header>
 
   <main class="page-content">
-    <h1>Welcome to the Coding Dimension!</h1>
+    <h1>Mis Proyectos Principales</h1>
+
+    <section>
+      <h2>Inteligencia Artificial</h2>
+      <p>Redes Neuronales</p>
+      <ul>
+        <li><a class="page-link" href="{{ "/numbers/" | relative_url }}">Numbers AI</a></li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Programación</h2>
+      <p>C++</p>
+      <p>Python</p>
+    </section>
+
+    <section>
+      <h2>Diseño de Sistemas</h2>
+      <p>Django</p>
+      <p>.NET</p>
+      <p>React</p>
+    </section>
+
     <img src="https://img.freepik.com/free-photo/programming-background-concept_23-2150170170.jpg" alt="Logo" class="logo"> <!-- Cambia por la URL de tu logo -->
-    <p>Programacion</p>
+
     <img src="https://img.freepik.com/free-photo/programming-background-concept_23-2150170152.jpg" alt="Retro Image" class="retro-image"> <!-- Cambia por la URL de tu imagen retro -->
-    {{ content }} <!-- Este es el contenido que se inserta en las páginas -->
+
+    {{ content }} <!-- Contenido adicional para otras páginas -->
   </main>
 
   <footer class="site-footer">
-    <p>© 2024 My Jekyll Site</p>
+    <p>&copy; 2024 Página de Proyectos Personales</p>
   </footer>
 </body>
 </html>
