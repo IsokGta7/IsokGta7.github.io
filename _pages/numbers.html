@@ -5,113 +5,127 @@ permalink: /numbers/
 ---
 
 <div class="login-container">
-  <h2>Numbers</h2>
-</div>
-
-<div class="canvas-container">
-  <h1>Dibuja un número</h1>
-  <canvas id="drawingCanvas" width="280" height="280" style="border:1px solid black;"></canvas>
-  <button id="predictButton" disabled>Predecir</button>
-  <h2>Resultado: <span id="result"></span></h2>
-  <p id="status">Cargando el modelo...</p>
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
-<script>
-    const canvas = document.getElementById('drawingCanvas');
-    const ctx = canvas.getContext('2d');
-    const predictButton = document.getElementById('predictButton');
-    const statusText = document.getElementById('status');
-    let isDrawing = false;
-    let model;
-
-    // Load the model only once when the page loads
-    async function loadModel() {
-        try {
-            console.log("Intentando cargar el modelo...");
-            model = await tf.loadLayersModel('model_numbers.json'); // Update the path if needed
-            console.log("Modelo cargado correctamente:", model);
-            statusText.innerText = "Modelo cargado.";
-            predictButton.disabled = false; // Enable the prediction button
-        } catch (error) {
-            console.error("Error al cargar el modelo:", error);
-            statusText.innerText = "Error cargando el modelo.";
-        }
-    }
-
-    // Preprocess the canvas data for prediction
-    async function preprocessCanvas() {
-        console.log("Preprocesando los datos del canvas...");
-        const tempCanvas = document.createElement('canvas');
-        const tempCtx = tempCanvas.getContext('2d');
-        tempCanvas.width = 28;
-        tempCanvas.height = 28;
-        tempCtx.drawImage(canvas, 0, 0, 28, 28);
-        const resizedImageData = tempCtx.getImageData(0, 0, 28, 28);
-        console.log("Datos de imagen redimensionados:", resizedImageData);
-        const imageArray = Array.from(resizedImageData.data).filter((_, index) => index % 4 === 0);
-        console.log("Array de entrada para el tensor:", imageArray);
-        const inputTensor = tf.tensor4d(imageArray, [1, 28, 28, 1]).div(255.0);
-        console.log("Tensor de entrada:", inputTensor);
-        return inputTensor;
-    }
-
-    // Draw on the canvas
-    canvas.addEventListener('mousedown', () => {
-        console.log("Inicio del dibujo...");
-        isDrawing = true;
-    });
-    canvas.addEventListener('mouseup', () => {
-        console.log("Fin del dibujo.");
-        isDrawing = false;
-    });
-    canvas.addEventListener('mousemove', draw);
-
-    function draw(event) {
-        if (!isDrawing) return;
-        ctx.fillStyle = 'black';
-        ctx.fillRect(event.offsetX, event.offsetY, 10, 10);
-        console.log(`Dibujando en (${event.offsetX}, ${event.offsetY})`);
-    }
-
-    // Predict the digit
-    async function predictDigit() {
-        if (!model) {
-            alert("El modelo no se ha cargado todavía. Por favor, espere.");
-            return;
-        }
-        console.log("Iniciando la predicción...");
-        try {
-            const inputTensor = await preprocessCanvas();
-            const prediction = model.predict(inputTensor);
-            console.log("Salida del modelo (tensor de predicción):", prediction);
-            const predictedClass = prediction.argMax(-1).dataSync()[0];
-            console.log("Clase predicha:", predictedClass);
-            document.getElementById('result').innerText = predictedClass;
-        } catch (error) {
-            console.error("Error durante la predicción:", error);
-        }
-    }
-
-    // Event listener for prediction button
-    predictButton.addEventListener('click', predictDigit);
-
-    // Load the model when the page loads
-    window.onload = loadModel;
-</script>
-
-<style>
-    .canvas-container {
-        margin-top: 20px;
-        text-align: center;
-    }
-
-    #drawingCanvas {
-        cursor: crosshair;
-    }
-
-    #status {
-        font-style: italic;
-        color: gray;
-    }
-</style>
+    <h2>Numbers</h2>
+  </div>
+  
+  <div class="canvas-container">
+    <h1>Dibuja un número</h1>
+    <canvas id="drawingCanvas" width="280" height="280" style="border:1px solid black;"></canvas>
+    <br>
+    <canvas id="previewCanvas" width="28" height="28" style="border:1px solid black;"></canvas> <!-- Vista previa del lienzo redimensionado -->
+    <p>Vista previa del canvas de 28x28</p>
+    <button id="predictButton" disabled>Predecir</button>
+    <h2>Resultado: <span id="result"></span></h2>
+    <p id="status">Cargando el modelo...</p>
+  </div>
+  
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+  <script>
+      const canvas = document.getElementById('drawingCanvas');
+      const ctx = canvas.getContext('2d');
+      const previewCanvas = document.getElementById('previewCanvas');
+      const previewCtx = previewCanvas.getContext('2d');
+      const predictButton = document.getElementById('predictButton');
+      const statusText = document.getElementById('status');
+      let isDrawing = false;
+      let model;
+  
+      // Cargar el modelo
+      async function loadModel() {
+          try {
+              console.log("Cargando modelo...");
+              model = await tf.loadLayersModel('model_numbers.json'); // Actualiza la ruta si es necesario
+              statusText.innerText = "Modelo cargado.";
+              predictButton.disabled = false;
+          } catch (error) {
+              console.error("Error al cargar el modelo:", error);
+              statusText.innerText = "Error cargando el modelo.";
+          }
+      }
+  
+      // Preprocesar el lienzo
+      async function preprocessCanvas() {
+          console.log("Preprocesando el lienzo...");
+          const tempCanvas = document.createElement('canvas');
+          const tempCtx = tempCanvas.getContext('2d');
+          tempCanvas.width = 28;
+          tempCanvas.height = 28;
+  
+          // Redimensionar el lienzo de 280x280 a 28x28
+          tempCtx.drawImage(canvas, 0, 0, 28, 28);
+  
+          // Mostrar el lienzo redimensionado en el previewCanvas
+          previewCtx.clearRect(0, 0, 28, 28);
+          previewCtx.drawImage(tempCanvas, 0, 0);
+  
+          const imageData = tempCtx.getImageData(0, 0, 28, 28).data;
+  
+          // Solo utilizar los valores de los canales (en escala de grises)
+          const grayscaleData = [];
+          for (let i = 0; i < imageData.length; i += 4) {
+              grayscaleData.push(imageData[i] / 255); // Normalizar a valores entre 0 y 1
+          }
+  
+          const inputTensor = tf.tensor4d(grayscaleData, [1, 28, 28, 1]);
+          console.log("Tensor de entrada para predicción:", inputTensor);
+          return inputTensor;
+      }
+  
+      // Dibujar en el lienzo
+      canvas.addEventListener('mousedown', () => isDrawing = true);
+      canvas.addEventListener('mouseup', () => isDrawing = false);
+      canvas.addEventListener('mousemove', draw);
+  
+      function draw(event) {
+          if (!isDrawing) return;
+          ctx.lineWidth = 2; // Hacer el pincel más pequeño
+          ctx.lineCap = 'round'; // Hacer los bordes más suaves
+          ctx.strokeStyle = 'black';
+          ctx.lineTo(event.offsetX, event.offsetY);
+          ctx.stroke();
+          ctx.beginPath(); // Comenzar un nuevo trazo para evitar líneas conectadas extrañas
+          ctx.moveTo(event.offsetX, event.offsetY);
+      }
+  
+      // Limpiar el canvas cuando dejas de dibujar para prevenir trazos conectados
+      canvas.addEventListener('mouseup', () => {
+          ctx.beginPath();
+      });
+  
+      // Predicción
+      async function predictDigit() {
+          if (!model) {
+              alert("El modelo no se ha cargado todavía.");
+              return;
+          }
+          try {
+              const inputTensor = await preprocessCanvas();
+              const prediction = model.predict(inputTensor);
+              const predictedClass = prediction.argMax(-1).dataSync()[0];
+              document.getElementById('result').innerText = predictedClass;
+          } catch (error) {
+              console.error("Error durante la predicción:", error);
+          }
+      }
+  
+      // Escuchar clic del botón de predicción
+      predictButton.addEventListener('click', predictDigit);
+  
+      // Cargar el modelo al cargar la página
+      window.onload = loadModel;
+  </script>
+  
+  <style>
+      .canvas-container {
+          margin-top: 20px;
+          text-align: center;
+      }
+      #drawingCanvas {
+          cursor: crosshair;
+      }
+      #status {
+          font-style: italic;
+          color: gray;
+      }
+  </style>
+  

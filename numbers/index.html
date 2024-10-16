@@ -34,7 +34,7 @@
             const inputTensor = tf.tensor4d(imageArray, [1, 28, 28, 4]).mean(-1).expandDims(-1).div(tf.scalar(255));
 
             // Cargar el modelo
-            const model = await tf.loadLayersModel('model.json');
+            const model = await tf.loadLayersModel('model_numbers.json');
             const prediction = model.predict(inputTensor);
             const predictedClass = prediction.argMax(-1).dataSync()[0];
 
