@@ -5,11 +5,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Reconocimiento de Números</title>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 20px;
+        }
+        canvas {
+            border: 1px solid black;
+            background-color: white; /* Asegúrate de que el fondo sea blanco */
+        }
+    </style>
 </head>
 <body>
     <h1>Dibuja un número</h1>
-    <canvas id="drawingCanvas" width="280" height="280" style="border:1px solid black;"></canvas>
+    <canvas id="drawingCanvas" width="280" height="280"></canvas>
     <button id="predictButton">Predecir</button>
+    <button id="clearButton">Limpiar Canvas</button>
     <h2>Resultado: <span id="result"></span></h2>
 
     <script>
@@ -17,6 +30,7 @@
         const ctx = canvas.getContext('2d');
         let isDrawing = false;
 
+        // Funciones para dibujar en el canvas
         canvas.addEventListener('mousedown', () => isDrawing = true);
         canvas.addEventListener('mouseup', () => isDrawing = false);
         canvas.addEventListener('mousemove', draw);
@@ -27,11 +41,24 @@
             ctx.fillRect(event.offsetX, event.offsetY, 10, 10);
         }
 
+        // Limpiar el canvas
+        document.getElementById('clearButton').addEventListener('click', () => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            document.getElementById('result').innerText = "";
+        });
+
+        // Predicción
         document.getElementById('predictButton').addEventListener('click', async () => {
             // Procesar el canvas a una imagen
             const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
             const imageArray = Array.from(imageData.data);
-            const inputTensor = tf.tensor4d(imageArray, [1, 28, 28, 4]).mean(-1).expandDims(-1).div(tf.scalar(255));
+            
+            // Convertir a escala de grises y normalizar
+            const inputTensor = tf.tensor4d(imageArray, [1, 280, 280, 4]) // Cambia 28x28 a 280x280
+                .mean(-1) // Convertir a escala de grises
+                .resizeBilinear([28, 28]) // Cambiar tamaño a 28x28
+                .expandDims(-1) // Añadir dimensión para canal
+                .div(tf.scalar(255)); // Normalizar
 
             // Cargar el modelo
             const model = await tf.loadLayersModel('model_numbers.json');

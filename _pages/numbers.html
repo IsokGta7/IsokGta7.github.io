@@ -9,8 +9,7 @@ permalink: /numbers/
 </div>
 
 <div class="canvas-container">
-    <h1>Dibuja un número</h1>
-    <!-- Canvas ampliado a 280x280 para visibilidad -->
+    <h1>Dibuja un número para que el modelo diga que número es más probable que sea</h1>
     <canvas id="drawingCanvas" width="280" height="280" style="border:1px solid black;"></canvas>
     <br>
     <button id="predictButton" disabled>Predecir</button>
@@ -29,10 +28,10 @@ permalink: /numbers/
     let isDrawing = false;
     let model;
 
-    // Cargar el modelo
     async function loadModel() {
         try {
-            model = await tf.loadLayersModel('model_numbers.json'); // Actualiza la ruta si es necesario
+            model = await tf.loadLayersModel('model_numbers.json');
+            console.log("Modelo cargado correctamente:", model.summary());
             statusText.innerText = "Modelo cargado.";
             predictButton.disabled = false;
         } catch (error) {
@@ -41,38 +40,18 @@ permalink: /numbers/
         }
     }
 
-    // Preprocesar el lienzo
+    //Preprocesar el lienzo
     async function preprocessCanvas() {
-        // Crear un canvas temporal para escalar la imagen
-        const tempCanvas = document.createElement('canvas');
-        const tempCtx = tempCanvas.getContext('2d');
-        tempCanvas.width = 28;
-        tempCanvas.height = 28;
-        tempCtx.drawImage(canvas, 0, 0, 28, 28);
-        const imageData = tempCtx.getImageData(0, 0, 28, 28).data;
+        let image = tf.browser.fromPixels(canvas, 1); // 1 canal para escala de grises
+        image = tf.image.resizeBilinear(image, [28, 28]);
+        console.log("Antes de normalizar:", image.arraySync()); // Ver los valores antes de la normalización
+        image = image.div(255.0); // Normalización
+        console.log("Después de normalizar:", image.arraySync()); // Ver los valores después de la normalización
 
-        // Convertir la imagen a escala de grises y normalizar
-        const grayscaleData = [];
-        for (let i = 0; i < imageData.length; i += 4) {
-            const brightness = (imageData[i] + imageData[i + 1] + imageData[i + 2]) / 3;
-            grayscaleData.push(brightness / 255);
-        }
-
-        // Crear el tensor 4D
-        const inputTensor = tf.tensor4d(grayscaleData, [1, 28, 28, 1]);
-        return inputTensor;
+        const reshaped = image.expandDims(0); // Añadir dimensión para batch
+        return reshaped;
     }
 
-    function preprocessCanvasImage(canvas) {
-        // Redimensiona la imagen a 28x28
-        const image = tf.browser.fromPixels(canvas, 1).resizeNearestNeighbor([28, 28]);
-        // Normaliza los valores de píxeles
-        const normalized = image.div(255.0);
-        // Añade dimensiones de batch
-        return normalized.expandDims(0);
-    }
-    // Llamada a la función para obtener la imagen preprocesada
-    const PreprocessedImage = preprocessCanvasImage(canvas);
 
     // Obtener la posición del mouse en el canvas
     function getMousePosition(canvas, event) {
@@ -113,7 +92,7 @@ permalink: /numbers/
         document.getElementById('result').innerText = "";
     });
 
-    // Predicción
+
     async function predictDigit() {
         if (!model) {
             alert("El modelo no se ha cargado todavía.");
@@ -121,18 +100,23 @@ permalink: /numbers/
         }
         try {
             const inputTensor = await preprocessCanvas();
-            //Temporalmente probamos este otro metodo:
-            const predictions = model.predict(PreprocessedImage);
-            //const prediction = model.predict(inputTensor);
+            console.log("Tensor de entrada:", inputTensor.arraySync()); // Asegúrate de ver el tensor de entrada
+
+            // Asegúrate de que el tensor esté en la forma correcta
+            const predictions = model.predict(inputTensor);
             const predictedClass = predictions.argMax(-1).dataSync()[0];
-            //const predictedClass = prediction.argMax(-1).dataSync()[0];
+
             document.getElementById('result').innerText = predictedClass;
             console.log(predictions.arraySync()); // Muestra la distribución de probabilidades
             console.log(predictedClass); // Muestra la clase predicha
+            console.log("Forma del tensor de entrada:", inputTensor.shape);
+
         } catch (error) {
             console.error("Error durante la predicción:", error);
         }
     }
+
+
 
     // Escuchar clic del botón de predicción
     predictButton.addEventListener('click', predictDigit);
@@ -149,7 +133,8 @@ permalink: /numbers/
 
     #drawingCanvas {
         cursor: crosshair;
-        width: 280px; /* Ampliación para visibilidad */
+        width: 280px;
+        /* Ampliación para visibilidad */
         height: 280px;
     }
 
