@@ -40,58 +40,74 @@ permalink: /numbers/
         }
     }
 
-    //Preprocesar el lienzo
+    // Preprocesar el lienzo
     async function preprocessCanvas() {
         let image = tf.browser.fromPixels(canvas, 1); // 1 canal para escala de grises
         image = tf.image.resizeBilinear(image, [28, 28]);
-        console.log("Antes de normalizar:", image.arraySync()); // Ver los valores antes de la normalización
         image = image.div(255.0); // Normalización
-        console.log("Después de normalizar:", image.arraySync()); // Ver los valores después de la normalización
-
         const reshaped = image.expandDims(0); // Añadir dimensión para batch
         return reshaped;
     }
 
-
-    // Obtener la posición del mouse en el canvas
-    function getMousePosition(canvas, event) {
+    // Obtener la posición del mouse o del dedo en el canvas
+    function getPosition(event) {
         const rect = canvas.getBoundingClientRect();
-        return {
-            x: event.clientX - rect.left,
-            y: event.clientY - rect.top
-        };
+        if (event.touches) {
+            return {
+                x: event.touches[0].clientX - rect.left,
+                y: event.touches[0].clientY - rect.top
+            };
+        } else {
+            return {
+                x: event.clientX - rect.left,
+                y: event.clientY - rect.top
+            };
+        }
     }
 
-    // Dibujar en el lienzo
-    canvas.addEventListener('mousedown', (event) => {
+    // Comenzar a dibujar
+    function startDrawing(event) {
         isDrawing = true;
-        const mousePos = getMousePosition(canvas, event);
+        const pos = getPosition(event);
         ctx.beginPath();
-        ctx.moveTo(mousePos.x, mousePos.y);
-    });
+        ctx.moveTo(pos.x, pos.y);
+        event.preventDefault(); // Evitar el scroll en dispositivos táctiles
+    }
 
-    canvas.addEventListener('mouseup', () => {
+    // Dejar de dibujar
+    function stopDrawing() {
         isDrawing = false;
-    });
+    }
 
-    canvas.addEventListener('mousemove', (event) => {
+    // Dibujar en el canvas
+    function draw(event) {
         if (!isDrawing) return;
-        const mousePos = getMousePosition(canvas, event);
-        ctx.lineWidth = 15; // Aumentar el grosor para facilitar el dibujo
+        const pos = getPosition(event);
+        ctx.lineWidth = 15;
         ctx.lineCap = 'round';
         ctx.strokeStyle = 'black';
-        ctx.lineTo(mousePos.x, mousePos.y);
+        ctx.lineTo(pos.x, pos.y);
         ctx.stroke();
         ctx.beginPath();
-        ctx.moveTo(mousePos.x, mousePos.y);
-    });
+        ctx.moveTo(pos.x, pos.y);
+        event.preventDefault(); // Evitar el scroll en dispositivos táctiles
+    }
+
+    // Eventos para mouse
+    canvas.addEventListener('mousedown', startDrawing);
+    canvas.addEventListener('mouseup', stopDrawing);
+    canvas.addEventListener('mousemove', draw);
+
+    // Eventos para touch (dispositivos móviles)
+    canvas.addEventListener('touchstart', startDrawing);
+    canvas.addEventListener('touchend', stopDrawing);
+    canvas.addEventListener('touchmove', draw);
 
     // Limpiar el lienzo
     clearButton.addEventListener('click', () => {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         document.getElementById('result').innerText = "";
     });
-
 
     async function predictDigit() {
         if (!model) {
@@ -100,23 +116,14 @@ permalink: /numbers/
         }
         try {
             const inputTensor = await preprocessCanvas();
-            console.log("Tensor de entrada:", inputTensor.arraySync()); // Asegúrate de ver el tensor de entrada
-
-            // Asegúrate de que el tensor esté en la forma correcta
             const predictions = model.predict(inputTensor);
             const predictedClass = predictions.argMax(-1).dataSync()[0];
 
             document.getElementById('result').innerText = predictedClass;
-            console.log(predictions.arraySync()); // Muestra la distribución de probabilidades
-            console.log(predictedClass); // Muestra la clase predicha
-            console.log("Forma del tensor de entrada:", inputTensor.shape);
-
         } catch (error) {
             console.error("Error durante la predicción:", error);
         }
     }
-
-
 
     // Escuchar clic del botón de predicción
     predictButton.addEventListener('click', predictDigit);
@@ -134,7 +141,6 @@ permalink: /numbers/
     #drawingCanvas {
         cursor: crosshair;
         width: 280px;
-        /* Ampliación para visibilidad */
         height: 280px;
     }
 

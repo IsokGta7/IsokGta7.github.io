@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,12 +13,15 @@
             align-items: center;
             margin: 20px;
         }
+
         canvas {
             border: 1px solid black;
-            background-color: white; /* Asegúrate de que el fondo sea blanco */
+            background-color: white;
+            /* Asegúrate de que el fondo sea blanco */
         }
     </style>
 </head>
+
 <body>
     <h1>Dibuja un número</h1>
     <canvas id="drawingCanvas" width="280" height="280"></canvas>
@@ -52,7 +56,7 @@
             // Procesar el canvas a una imagen
             const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
             const imageArray = Array.from(imageData.data);
-            
+
             // Convertir a escala de grises y normalizar
             const inputTensor = tf.tensor4d(imageArray, [1, 280, 280, 4]) // Cambia 28x28 a 280x280
                 .mean(-1) // Convertir a escala de grises
@@ -69,5 +73,9 @@
             document.getElementById('result').innerText = predictedClass;
         });
     </script>
+
+    <!-- Aquí se incluye el contenido del archivo numbers.md -->
+    {% include_relative numbers.markdown %}
 </body>
+
 </html>
