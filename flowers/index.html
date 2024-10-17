@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clasificación de Flores</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+</head>
+<body>
+    <h1>Clasificación de Flores</h1>
+    <video id="video" width="320" height="240" autoplay></video>
+    <button id="captureBtn">Capturar Imagen</button>
+    <canvas id="canvas" width="180" height="180" style="display:none;"></canvas>
+    <p id="resultado">Resultado: </p>
+    
+    <script>
+        let model;
+
+        // Cargar el modelo de TensorFlow
+        async function loadModel() {
+            model = await tf.loadLayersModel('model_flowers.json');
+            console.log('Modelo cargado.');
+        }
+
+        // Acceder a la cámara
+        async function startCamera() {
+            const video = document.getElementById('video');
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            video.srcObject = stream;
+        }
+
+        // Capturar la imagen de la cámara y preprocesarla
+        function captureImage() {
+            const video = document.getElementById('video');
+            const canvas = document.getElementById('canvas');
+            const context = canvas.getContext('2d');
+            context.drawImage(video, 0, 0, 180, 180);
+            return tf.browser.fromPixels(canvas).toFloat().div(255.0).expandDims(0);
+        }
+
+        // Realizar la predicción usando el modelo cargado
+        async function predict() {
+            if (!model) {
+                alert('El modelo aún no se ha cargado.');
+                return;
+            }
+            const imageTensor = captureImage();
+            const prediction = model.predict(imageTensor);
+            const predictionArray = await prediction.array();
+            document.getElementById('resultado').innerText = 'Resultado: ' + predictionArray[0].join(', ');
+            imageTensor.dispose();
+            prediction.dispose();
+        }
+
+        // Eventos
+        document.getElementById('captureBtn').addEventListener('click', predict);
+
+        // Inicializar
+        loadModel();
+        startCamera();
+    </script>
+</body>
+</html>
