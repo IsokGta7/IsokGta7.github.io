@@ -1,11 +1,11 @@
 ---
 layout: post
-title: "Aprendiendo GitHub, Jekyll y Diseño Web Orientado a Objetos"
+title: "Diseño Orientado a Objetos"
 date: 2024-09-27 17:52:06 -0700
 categories: aprendizaje jekyll github diseno-objetos
 ---
 
-¡Bienvenidos a esta página dedicada a nuestro viaje de aprendizaje!
+Esta seccion es sobre el aprendizaje orientado a objetos.
 
 Este proyecto es una tarea diseñada para explorar los fundamentos del desarrollo web, trabajando con herramientas como **GitHub**, **Jekyll**, y los principios de **diseño orientado a objetos**.
 
