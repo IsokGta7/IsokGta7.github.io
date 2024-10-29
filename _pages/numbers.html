@@ -4,148 +4,141 @@ title: Numbers
 permalink: /numbers/
 ---
 
-<div class="login-container">
-    <h2>Numbers</h2>
-</div>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reconocimiento de Números</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 20px;
+        }
 
-<div class="canvas-container">
-    <h1>Dibuja un número para que el modelo diga que número es más probable que sea</h1>
-    <canvas id="drawingCanvas" width="280" height="280" style="border:1px solid black;"></canvas>
+        canvas {
+            border: 1px solid black;
+            background-color: white;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Dibuja un número para que el modelo diga qué número es más probable que sea</h1>
+    <canvas id="drawingCanvas" width="280" height="280"></canvas>
     <br>
     <button id="predictButton" disabled>Predecir</button>
     <button id="clearButton">Limpiar Canvas</button>
     <h2>Resultado: <span id="result"></span></h2>
     <p id="status">Cargando el modelo...</p>
-</div>
+    <h2>Imagen procesada (28x28)</h2>
+    <canvas id="processedCanvas" width="28" height="28"></canvas>
 
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
-<script>
-    const canvas = document.getElementById('drawingCanvas');
-    const ctx = canvas.getContext('2d');
-    const predictButton = document.getElementById('predictButton');
-    const clearButton = document.getElementById('clearButton');
-    const statusText = document.getElementById('status');
-    let isDrawing = false;
-    let model;
+    <script>
+        const canvas = document.getElementById('drawingCanvas');
+        const ctx = canvas.getContext('2d');
+        const processedCanvas = document.getElementById('processedCanvas');
+        const processedCtx = processedCanvas.getContext('2d');
+        const predictButton = document.getElementById('predictButton');
+        const clearButton = document.getElementById('clearButton');
+        const statusText = document.getElementById('status');
+        let isDrawing = false;
+        let model;
 
-    async function loadModel() {
-        try {
-            model = await tf.loadLayersModel('model_numbers.json');
-            console.log("Modelo cargado correctamente:", model.summary());
-            statusText.innerText = "Modelo cargado.";
-            predictButton.disabled = false;
-        } catch (error) {
-            console.error("Error al cargar el modelo:", error);
-            statusText.innerText = "Error cargando el modelo.";
+        async function loadModel() {
+            try {
+                model = await tf.loadLayersModel('model_numbers.json');
+                statusText.innerText = "Modelo cargado.";
+                predictButton.disabled = false;
+            } catch (error) {
+                console.error("Error al cargar el modelo:", error);
+                statusText.innerText = "Error cargando el modelo.";
+            }
         }
-    }
 
-    // Preprocesar el lienzo
-    async function preprocessCanvas() {
-        let image = tf.browser.fromPixels(canvas, 1); // 1 canal para escala de grises
-        image = tf.image.resizeBilinear(image, [28, 28]);
-        image = image.div(255.0); // Normalización
-        const reshaped = image.expandDims(0); // Añadir dimensión para batch
-        return reshaped;
-    }
-
-    // Obtener la posición del mouse o del dedo en el canvas
-    function getPosition(event) {
-        const rect = canvas.getBoundingClientRect();
-        if (event.touches) {
-            return {
-                x: event.touches[0].clientX - rect.left,
-                y: event.touches[0].clientY - rect.top
-            };
-        } else {
+        function getMousePosition(canvas, event) {
+            const rect = canvas.getBoundingClientRect();
             return {
                 x: event.clientX - rect.left,
                 y: event.clientY - rect.top
             };
         }
-    }
 
-    // Comenzar a dibujar
-    function startDrawing(event) {
-        isDrawing = true;
-        const pos = getPosition(event);
-        ctx.beginPath();
-        ctx.moveTo(pos.x, pos.y);
-        event.preventDefault(); // Evitar el scroll en dispositivos táctiles
-    }
+        canvas.addEventListener('mousedown', (event) => {
+            isDrawing = true;
+            const mousePos = getMousePosition(canvas, event);
+            ctx.beginPath();
+            ctx.moveTo(mousePos.x, mousePos.y);
+        });
 
-    // Dejar de dibujar
-    function stopDrawing() {
-        isDrawing = false;
-    }
+        canvas.addEventListener('mouseup', () => {
+            isDrawing = false;
+        });
 
-    // Dibujar en el canvas
-    function draw(event) {
-        if (!isDrawing) return;
-        const pos = getPosition(event);
-        ctx.lineWidth = 15;
-        ctx.lineCap = 'round';
-        ctx.strokeStyle = 'black';
-        ctx.lineTo(pos.x, pos.y);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(pos.x, pos.y);
-        event.preventDefault(); // Evitar el scroll en dispositivos táctiles
-    }
+        canvas.addEventListener('mousemove', (event) => {
+            if (!isDrawing) return;
+            const mousePos = getMousePosition(canvas, event);
+            ctx.lineWidth = 15;
+            ctx.lineCap = 'round';
+            ctx.strokeStyle = 'black';
+            ctx.lineTo(mousePos.x, mousePos.y);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(mousePos.x, mousePos.y);
+        });
 
-    // Eventos para mouse
-    canvas.addEventListener('mousedown', startDrawing);
-    canvas.addEventListener('mouseup', stopDrawing);
-    canvas.addEventListener('mousemove', draw);
+        clearButton.addEventListener('click', () => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            processedCtx.clearRect(0, 0, processedCanvas.width, processedCanvas.height);
+            document.getElementById('result').innerText = "";
+        });
 
-    // Eventos para touch (dispositivos móviles)
-    canvas.addEventListener('touchstart', startDrawing);
-    canvas.addEventListener('touchend', stopDrawing);
-    canvas.addEventListener('touchmove', draw);
+        async function preprocessCanvas() {
+            const tempCanvas = document.createElement('canvas');
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCanvas.width = 28;
+            tempCanvas.height = 28;
+            tempCtx.drawImage(canvas, 0, 0, 28, 28);
 
-    // Limpiar el lienzo
-    clearButton.addEventListener('click', () => {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        document.getElementById('result').innerText = "";
-    });
+            // Mostrar en el canvas procesado
+            processedCtx.drawImage(tempCanvas, 0, 0, 28, 28);
 
-    async function predictDigit() {
-        if (!model) {
-            alert("El modelo no se ha cargado todavía.");
-            return;
+            // Obtener los datos de imagen directamente sin preprocesado
+            const imageData = tempCtx.getImageData(0, 0, 28, 28).data;
+
+            // Normalizar los datos de la imagen a escala de 0 a 1
+            const normalizedData = [];
+            for (let i = 0; i < imageData.length; i += 4) {
+                normalizedData.push(imageData[i] / 255); // Normaliza el valor
+            }
+
+            // Crear el tensor sin procesamiento adicional
+            const inputTensor = tf.tensor4d(normalizedData, [1, 28, 28, 1]);
+            return inputTensor;
         }
-        try {
-            const inputTensor = await preprocessCanvas();
-            const predictions = model.predict(inputTensor);
-            const predictedClass = predictions.argMax(-1).dataSync()[0];
 
-            document.getElementById('result').innerText = predictedClass;
-        } catch (error) {
-            console.error("Error durante la predicción:", error);
+
+
+        async function predictDigit() {
+            if (!model) {
+                alert("El modelo no se ha cargado todavía.");
+                return;
+            }
+            try {
+                const inputTensor = await preprocessCanvas();
+                const predictions = model.predict(inputTensor);
+                const predictionArray = predictions.dataSync();
+                const probabilities = Array.from(predictionArray);
+                const predictedClass = probabilities.indexOf(Math.max(...probabilities));
+
+                document.getElementById('result').innerText = predictedClass;
+            } catch (error) {
+                console.error("Error durante la predicción:", error);
+            }
         }
-    }
 
-    // Escuchar clic del botón de predicción
-    predictButton.addEventListener('click', predictDigit);
-
-    // Cargar el modelo al cargar la página
-    window.onload = loadModel;
-</script>
-
-<style>
-    .canvas-container {
-        margin-top: 20px;
-        text-align: center;
-    }
-
-    #drawingCanvas {
-        cursor: crosshair;
-        width: 280px;
-        height: 280px;
-    }
-
-    #status {
-        font-style: italic;
-        color: gray;
-    }
-</style>
+        predictButton.addEventListener('click', predictDigit);
+        window.onload = loadModel;
+    </script>
+</body>
