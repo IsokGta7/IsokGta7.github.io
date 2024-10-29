@@ -30,6 +30,7 @@ permalink: /numbers/
     <p>Dibuja un número en el canvas y presiona "Predecir" para que el modelo identifique el número.</p>
     <canvas id="canvas" width="200" height="200"></canvas>
     <button onclick="predict()">Predecir</button>
+    <button onclick="clearCanvas()">Limpiar Canvas</button>
     <p id="prediction"></p>
 
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
@@ -84,6 +85,12 @@ permalink: /numbers/
         canvas.addEventListener('touchstart', startDrawing);
         canvas.addEventListener('touchmove', draw);
         canvas.addEventListener('touchend', stopDrawing);
+
+        // Limpiar el canvas y la predicción
+        function clearCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            document.getElementById('prediction').textContent = ""; // Limpiar el texto de predicción
+        }
 
         // Limpiar y predecir
         async function predict() {
