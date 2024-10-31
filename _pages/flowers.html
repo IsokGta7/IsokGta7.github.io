@@ -3,127 +3,124 @@ layout: default
 title: Flowers
 permalink: /flowers/
 ---
-
 <!DOCTYPE html>
 <html lang="es">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Clasificación de Flores</title>
+    <title>Clasificador de Flores</title>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
 </head>
 
 <body>
-    <h1>Clasificación de Flores</h1>
-    <video id="video" width="180" height="180" autoplay></video>
-    <button id="captureBtn">Capturar Imagen</button>
+    <h1>Clasificador de Flores</h1>
+    <input type="file" id="fileInput" accept="image/*">
+    <br>
     <canvas id="canvas" width="180" height="180" style="display:none;"></canvas>
-    <p id="resultado">Resultado: </p>
+    <h2 id="predictionResult"></h2>
 
     <script>
-        let model;
+        let model; // Variable global para el modelo
 
-        // Función para mostrar un mensaje de carga
-        function showLoadingMessage(message) {
-            const resultado = document.getElementById('resultado');
-            resultado.innerText = message;
-        }
-
-        // Cargar el modelo de TensorFlow con un indicador de progreso
         async function loadModel() {
-            const modelUrl = '/assets/flowers/model_flowers.json';
-
             try {
-                showLoadingMessage('Cargando el modelo, esto puede tardar unos momentos...');
-                console.log("Intentando cargar el modelo...");
+                // Contador de shards cargados
+                let loadedShards = 0;
+                const totalShards = 4; // Total de shards esperados
 
-                // Agregamos un controlador de eventos para cada shard
-                tf.io.http(modelUrl, {
-                    onProgress: (fractions) => {
-                        showLoadingMessage(`Cargando modelo: ${Math.round(fractions * 100)}% completado`);
-                        console.log(`Progreso: ${Math.round(fractions * 100)}%`);
+                console.log("Loading model...");
+
+                // Cargar el modelo y los shards
+                model = await tf.loadLayersModel('/assets/flowers/model_flowers.json');
+                console.log('Trololol');
+
+
+                // Verificar cada shard
+                for (let i = 1; i <= totalShards; i++) {
+                    const shardPath = '/assets/flowers/group1-shard${i}of${totalShards}.bin';
+                    try {
+                        const response = await fetch(shardPath);
+                        if (response.ok) {
+                            loadedShards++;
+                            console.log(`Shard ${i} de ${totalShards} cargado exitosamente.`);
+                        } else {
+                            console.error(`Error al cargar el shard ${i}: ${response.status} ${response.statusText}`);
+                        }
+                    } catch (fetchError) {
+                        console.error(`Error al verificar el shard ${i}:`, fetchError);
                     }
-                });
+                }
 
-                model = await tf.loadLayersModel(modelUrl);
-                console.log('Modelo cargado exitosamente.');
-                showLoadingMessage('Modelo cargado. Puede capturar una imagen.');
+                console.log(`Carga completa: ${loadedShards} de ${totalShards} shards cargados.`);
+
+                if (loadedShards < totalShards) {
+                    console.warn("No se pudieron cargar todos los shards. Asegúrate de que todos los archivos .bin están en el directorio correcto.");
+                } else {
+                    console.log("Modelo cargado exitosamente.");
+                }
+
             } catch (error) {
-                console.error('Error al cargar el modelo:', error);
-                showLoadingMessage('Error al cargar el modelo. Verifique la conexión o la ruta del archivo.');
+                console.error("Error al cargar el modelo:", error);
+                if (error.message.includes("shard")) {
+                    console.error("Parece que el modelo está buscando un shard .bin, pero no existe. Asegúrate de que todos los archivos están en la ruta correcta.");
+                } else if (error.message.includes("Failed to fetch")) {
+                    console.error("Verifica tu ruta a model.json y asegúrate de que sea accesible.");
+                } else {
+                    console.error("Ocurrió un error desconocido.");
+                }
             }
         }
 
-        // Acceder a la cámara
-        async function startCamera() {
-            try {
-                const video = document.getElementById('video');
-                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-                video.srcObject = stream;
-                console.log('Cámara iniciada.');
-            } catch (error) {
-                console.error('Error al acceder a la cámara:', error);
-                alert('No se pudo acceder a la cámara.');
-            }
-        }
-
-        // Capturar la imagen de la cámara y preprocesarla
-        function captureImage() {
-            try {
-                const video = document.getElementById('video');
-                const canvas = document.getElementById('canvas');
-                const context = canvas.getContext('2d');
-                context.drawImage(video, 0, 0, 180, 180);
-                console.log('Imagen capturada desde la cámara.');
-
-                const imageTensor = tf.browser.fromPixels(canvas).toFloat().div(255.0).expandDims(0);
-                console.log('Tensor de imagen creado:', imageTensor.shape);
-
-                return imageTensor;
-            } catch (error) {
-                console.error('Error al capturar o procesar la imagen:', error);
-            }
-        }
-
-        // Realizar la predicción usando el modelo cargado
+        // Predecir la clase de la imagen
         async function predict() {
-            if (!model) {
-                alert('El modelo aún no se ha cargado.');
+            console.log('Iniciando predicción...');
+            const inputImage = document.getElementById('fileInput').files[0];
+            if (!inputImage) {
+                alert('Por favor, selecciona una imagen.');
+                console.log('No se seleccionó ninguna imagen.');
                 return;
             }
 
-            const imageTensor = captureImage();
-            if (!imageTensor) {
-                console.error("La imagen no se pudo capturar o no es válida.");
-                return;
-            }
+            const img = new Image();
+            img.src = URL.createObjectURL(inputImage);
+            img.onload = async () => {
+                const canvas = document.getElementById('canvas');
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, 180, 180);
+                console.log('Imagen dibujada en el lienzo.');
 
-            try {
-                console.log('Realizando predicción...');
-                const prediction = model.predict(imageTensor);
-                const predictionArray = await prediction.array();
-                console.log('Predicción completada:', predictionArray);
+                const imgTensor = tf.browser.fromPixels(canvas).toFloat();
+                console.log('Tensor de imagen creado.');
 
-                // Mostrar resultado
-                document.getElementById('resultado').innerText = 'Resultado: ' + predictionArray[0].join(', ');
+                // Preprocesamiento de la imagen
+                const resizedTensor = tf.image.resizeBilinear(imgTensor, [180, 180]); // Redimensionar
+                const normalizedTensor = resizedTensor.div(255.0).expandDims(0); // Normalizar y expandir dimensiones
+                console.log('Tensor normalizado y dimensiones expandidas.');
 
-                // Liberar memoria de los tensores
-                imageTensor.dispose();
-                prediction.dispose();
-            } catch (error) {
-                console.error('Error durante la predicción:', error);
-            }
+                try {
+                    // Hacer la predicción
+                    const predictions = await model.predict(normalizedTensor).data();
+                    console.log('Predicciones realizadas:', predictions);
+
+                    const predictedClass = predictions.indexOf(Math.max(...predictions));
+                    console.log('Clase predicha:', predictedClass);
+
+                    // Mostrar el resultado
+                    document.getElementById('predictionResult').innerText = `Predicción: Clase ${predictedClass}`;
+                } catch (predictError) {
+                    console.error("Error durante la predicción:", predictError);
+                    alert("Ocurrió un error durante la predicción. Revisa la consola para más detalles.");
+                }
+            };
         }
 
-        // Eventos
-        document.getElementById('captureBtn').addEventListener('click', predict);
+        // Event listener para el input de archivo
+        document.getElementById('fileInput').addEventListener('change', predict);
 
-        // Inicializar
+        // Cargar el modelo al inicio
         loadModel();
-        startCamera();
     </script>
-
 </body>
 
 </html>
