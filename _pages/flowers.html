@@ -29,6 +29,9 @@ permalink: /flowers/
         let model;
         let videoStream;
 
+        // Definir las clases de flores según el dataset
+        const classNames = ["Margarita", "Diente de León", "Rosa", "Girasol", "Tulipán"];
+
         async function loadModel() {
             try {
                 console.log("Cargando modelo...");
@@ -82,7 +85,10 @@ permalink: /flowers/
             try {
                 const predictions = await model.predict(normalizedTensor).data();
                 const predictedClass = predictions.indexOf(Math.max(...predictions));
-                document.getElementById("predictionResult").innerText = `Predicción: Clase ${predictedClass}`;
+
+                // Mostrar el nombre de la flor según la clase predicha
+                const flowerName = classNames[predictedClass];
+                document.getElementById("predictionResult").innerText = `Predicción: ${flowerName}`;
             } catch (predictError) {
                 console.error("Error durante la predicción:", predictError);
                 alert("Ocurrió un error durante la predicción. Revisa la consola para más detalles.");
