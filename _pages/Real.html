@@ -67,6 +67,11 @@
                 this.mode = config.mode || "horizontal";  // Por defecto, es horizontal
             }
 
+            // Propiedad estática className
+            static get className() {
+                return 'RandomFlipLayer';  // El nombre de la capa personalizada
+            }
+
             computeOutputShape(inputShape) {
                 return inputShape;  // El tamaño de la salida es el mismo que la entrada
             }
