@@ -60,6 +60,25 @@
     </footer>
 
     <script>
+        // Define la capa personalizada RandomFlip
+        class RandomFlipLayer extends tf.layers.Layer {
+            constructor(config) {
+                super(config);
+                this.mode = config.mode || "horizontal";  // Por defecto, es horizontal
+            }
+
+            computeOutputShape(inputShape) {
+                return inputShape;  // El tamaño de la salida es el mismo que la entrada
+            }
+
+            call(input) {
+                return tf.image.randomFlipLeftRight(input);  // Implementación simple de flip horizontal
+            }
+        }
+
+        // Registra la capa personalizada
+        tf.serialization.registerClass(RandomFlipLayer);
+
         let model;
         let videoStream;
         let predictionInterval;
@@ -68,7 +87,7 @@
         async function loadModel() {
             try {
                 console.log("Cargando modelo...");
-                // Replace the path with the correct path to your model.json file
+                // Reemplaza la ruta con la correcta a tu archivo model.json
                 model = await tf.loadLayersModel('/eirodriguezt/assets/flowers/model_flowers.json');
                 console.log("Modelo cargado correctamente.");
             } catch (error) {
