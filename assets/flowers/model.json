@@ -8,7 +8,7 @@
         "model_config": {
             "class_name": "Sequential",
             "config": {
-                "name": "sequential_1",
+                "name": "sequential_2",
                 "layers": [
                     {
                         "class_name": "InputLayer",
@@ -22,7 +22,7 @@
                             "dtype": "float32",
                             "sparse": false,
                             "ragged": false,
-                            "name": "input_layer"
+                            "name": "normalize_input"
                         }
                     },
                     {
@@ -64,7 +64,7 @@
                                         "name": "random_flip",
                                         "trainable": true,
                                         "dtype": "float32",
-                                        "mode": "horizontal",
+                                        "mode": "horizontal_and_vertical",
                                         "seed": null
                                     },
                                     "registered_name": null,
