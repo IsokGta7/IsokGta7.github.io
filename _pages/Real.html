@@ -16,7 +16,7 @@
         async function loadModel() {
             try {
                 // Carga el modelo. Cambia la ruta si es necesario.
-                const model = await tf.loadLayersModel('model.json');
+                const model = await tf.loadLayersModel('/eirodriguezt/assets/flowers/model_flowers.json');
                 console.log("Modelo cargado exitosamente");
                 return model;
             } catch (error) {
