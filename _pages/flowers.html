@@ -74,26 +74,37 @@ permalink: /flowers/
             predict();
         }
 
-        async function predict() {
-            console.log('Iniciando predicción...');
+        async function predict(video) {
             const canvas = document.getElementById("canvas");
-            const imgTensor = tf.browser.fromPixels(canvas).toFloat();
+            const ctx = canvas.getContext("2d");
 
+            // Dibujar frame del video en el canvas
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            // Crear tensor a partir del canvas
+            const imgTensor = tf.browser.fromPixels(canvas).toFloat();
             const resizedTensor = tf.image.resizeBilinear(imgTensor, [180, 180]);
-            const normalizedTensor = resizedTensor.div(255.0).expandDims(0);
+            const normalizedTensor = resizedTensor.div(255.0).expandDims(0); // (1, 180, 180, 3)
+
+            // Visualizar imagen preprocesada
+            const processedCanvas = document.getElementById("processedCanvas");
+            const processedCtx = processedCanvas.getContext("2d");
+            processedCtx.clearRect(0, 0, processedCanvas.width, processedCanvas.height);
+            processedCtx.drawImage(canvas, 0, 0, processedCanvas.width, processedCanvas.height);
 
             try {
-                const predictions = await model.predict(normalizedTensor).data();
-                const predictedClass = predictions.indexOf(Math.max(...predictions));
-
-                // Mostrar el nombre de la flor según la clase predicha
+                const predictions = await model.predict(normalizedTensor).data(); // (1, num_classes)
+                const predictedClass = Array.from(predictions).indexOf(Math.max(...predictions));
                 const flowerName = classNames[predictedClass];
+
                 document.getElementById("predictionResult").innerText = `Predicción: ${flowerName}`;
+                console.log("Predicción obtenida:", flowerName);
             } catch (predictError) {
                 console.error("Error durante la predicción:", predictError);
-                alert("Ocurrió un error durante la predicción. Revisa la consola para más detalles.");
+                document.getElementById("predictionResult").innerText = "Error en la predicción.";
             }
-        }
+}
+
 
         loadModel();
     </script>
