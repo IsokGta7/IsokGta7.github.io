@@ -33,10 +33,6 @@
             margin: 0.5rem 0;
         }
 
-        p {
-            margin: 0.5rem 0;
-        }
-
         video,
         canvas {
             margin: 10px 0;
@@ -62,8 +58,6 @@
             <option value="user">Cámara Frontal</option>
             <option value="environment">Cámara Trasera</option>
         </select>
-        <input type="file" id="imageInput" accept="image/*" onchange="loadImage(event)">
-        <button onclick="clearCanvas()">Limpiar Canvas</button>
         <video id="video" width="180" height="180" autoplay></video>
         <canvas id="canvas" width="180" height="180" style="display:none;"></canvas>
         <h2 id="predictionResult">Esperando predicción...</h2>
@@ -115,66 +109,25 @@
             });
         }
 
-        function clearCanvas() {
+        async function predict(video) {
             const canvas = document.getElementById("canvas");
             const ctx = canvas.getContext("2d");
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            document.getElementById("predictionResult").innerText = "Esperando predicción...";
-            clearProcessedCanvas();
-        }
 
-        function clearProcessedCanvas() {
-            const processedCanvas = document.getElementById("processedCanvas");
-            const ctx = processedCanvas.getContext("2d");
-            ctx.clearRect(0, 0, processedCanvas.width, processedCanvas.height);
-        }
+            // Dibujar frame del video en el canvas
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-        function loadImage(event) {
-            const canvas = document.getElementById("canvas");
-            const ctx = canvas.getContext("2d");
-            const file = event.target.files[0];
-
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function (e) {
-                    const img = new Image();
-                    img.onload = function () {
-                        ctx.clearRect(0, 0, canvas.width, canvas.height);
-                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                        console.log("Imagen cargada y dibujada en el canvas. Iniciando predicción...");
-                        predictCanvas(); // Llama a la función para predecir sobre la imagen cargada
-                    }
-                    img.src = e.target.result;
-                }
-                reader.readAsDataURL(file);
-            }
-        }
-
-        async function predictCanvas() {
-            const canvas = document.getElementById("canvas");
             const imgTensor = tf.browser.fromPixels(canvas).toFloat();
-
-            // Comprobación de tamaño
-            console.log("Tamaño de imagen original:", imgTensor.shape);
             const resizedTensor = tf.image.resizeBilinear(imgTensor, [180, 180]);
-            const normalizedTensor = resizedTensor.div(255.0).expandDims(0); // Normalización
+            const normalizedTensor = resizedTensor.div(255.0).expandDims(0);
 
-            // Visualización de la imagen preprocesada
+            // Visualizar imagen preprocesada
             const processedCanvas = document.getElementById("processedCanvas");
             const processedCtx = processedCanvas.getContext("2d");
             processedCtx.clearRect(0, 0, processedCanvas.width, processedCanvas.height);
-            processedCtx.drawImage(canvas, 0, 0, 180, 180); // Dibujar imagen preprocesada para verificación
-            console.log("Imagen preprocesada dibujada en el canvas de depuración.");
-
-            // Valor del tensor normalizado
-            console.log("Tensor normalizado:", normalizedTensor.toString());
+            processedCtx.drawImage(video, 0, 0, processedCanvas.width, processedCanvas.height);
 
             try {
                 const predictions = await model.predict(normalizedTensor).data();
-                
-                // Imprimir los valores de predicción
-                console.log("Valores de predicción:", predictions);
-                
                 const predictedClass = predictions.indexOf(Math.max(...predictions));
                 const flowerName = classNames[predictedClass];
 
