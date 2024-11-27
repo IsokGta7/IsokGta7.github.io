@@ -1,31 +1,149 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
+
 <head>
-  <title>Flower Classifier</title>
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clasificador de Flores</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <style>
+        body {
+            background-image: url('https://img.freepik.com/free-photo/black-painted-wall-textured-background_53876-110728.jpg');
+            background-size: cover;
+            background-position: center;
+            margin: 0;
+            font-family: Arial, sans-serif;
+            color: #fff;
+        }
+
+        header,
+        footer {
+            background-color: rgba(0, 0, 0, 0.8);
+            padding: 1rem;
+            text-align: center;
+        }
+
+        main {
+            padding: 2rem;
+            text-align: center;
+        }
+
+        h1,
+        h2 {
+            margin: 0.5rem 0;
+        }
+
+        video,
+        canvas {
+            margin: 10px 0;
+        }
+    </style>
 </head>
+
 <body>
-  <video id="video" width="224" height="224" autoplay></video>
-  <canvas id="canvas" width="224" height="224" style="display: none;"></canvas>
-  <p id="prediction"></p>
+    <header>
+        <nav>
+            <ul style="list-style: none; padding: 0; margin: 0; text-align: center;">
+                <li style="display: inline; margin: 0 10px;">
+                    <a href="index.html" style="color: #fff; text-decoration: none; font-weight: bold;">Inicio</a>
+                </li>
+            </ul>
+        </nav>
+    </header>
 
-  <script>
-    async function loadModel() {
-      const model = await tf.loadLayersModel('/eirodriguezt/assets/flowers/model_flowers.json');
-      return model;
-    }
+    <main>
+        <h1>Clasificador de Flores en Tiempo Real</h1>
+        <button onclick="startCamera()">Usar Cámara</button>
+        <select id="cameraOptions">
+            <option value="user">Cámara Frontal</option>
+            <option value="environment">Cámara Trasera</option>
+        </select>
+        <video id="video" width="180" height="180" autoplay></video>
+        <canvas id="canvas" width="180" height="180" style="display:none;"></canvas>
+        <h2 id="predictionResult">Esperando predicción...</h2>
+        <canvas id="processedCanvas" width="180" height="180" style="border: 1px solid #fff;"></canvas>
+        <h3>Imagen Preprocesada</h3>
+    </main>
 
-    async function start() {
-      const model = await loadModel(); // Call the async function here
+    <footer>
+        <p>&copy; 2024 Página de Proyectos Personales</p>
+    </footer>
 
-      const video = document.getElementById('video');
-      const canvas = document.getElementById('canvas');
-      const ctx = canvas.getContext('2d');
+    <script>
+        let model;
+        let videoStream;
+        let predictionInterval;
+        const classNames = ['daisy', 'dandelion', 'roses', 'sunflowers', 'tulips']; // Nombres de clases adecuados
 
-      // ... rest of your code using the model
-    }
+        async function loadModel() {
+            try {
+                console.log("Cargando modelo...");
+                model = await tf.loadLayersModel('/eirodriguezt/assets/flowers/model_flowers.json');
+                console.log("Modelo cargado correctamente.");
+                return model;
+            } catch (error) {
+                console.error("Error al cargar el modelo:", error);
+            }
+        }
 
-    start(); // Call the start function after loading the model
-  </script>
+        async function startCamera() {
+            const model = await loadModel(); // Cargar el modelo aquí
+
+            const video = document.getElementById("video");
+            const cameraOptions = document.getElementById("cameraOptions").value;
+
+            if (videoStream) {
+                videoStream.getTracks().forEach(track => track.stop());
+            }
+
+            navigator.mediaDevices.getUserMedia({
+                video: { facingMode: cameraOptions }
+            }).then(stream => {
+                videoStream = stream;
+                video.srcObject = stream;
+                video.style.display = "block";
+
+                // Iniciar predicciones en tiempo real
+                if (predictionInterval) clearInterval(predictionInterval);
+                predictionInterval = setInterval(() => predict(video, model), 500);
+            }).catch(error => {
+                console.error("Error al acceder a la cámara:", error);
+                alert("No se pudo acceder a la cámara.");
+            });
+        }
+
+        async function predict(video, model) {
+            const canvas = document.getElementById("canvas");
+            const ctx = canvas.getContext("2d");
+
+            // Dibujar frame del video en el canvas
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            const imgTensor = tf.browser.fromPixels(canvas).toFloat();
+            const resizedTensor = tf.image.resizeBilinear(imgTensor, [180, 180]);
+            const normalizedTensor = resizedTensor.div(255.0).expandDims(0);
+
+            // Visualizar imagen preprocesada
+            const processedCanvas = document.getElementById("processedCanvas");
+            const processedCtx = processedCanvas.getContext("2d");
+            processedCtx.clearRect(0, 0, processedCanvas.width, processedCanvas.height);
+            processedCtx.drawImage(video, 0, 0, processedCanvas.width, processedCanvas.height);
+
+            try {
+                const predictions = await model.predict(normalizedTensor).data();
+                const predictedClass = predictions.indexOf(Math.max(...predictions));
+                const flowerName = classNames[predictedClass];
+
+                document.getElementById("predictionResult").innerText = `Predicción: ${flowerName}`;
+                console.log("Predicción obtenida:", flowerName);
+            } catch (predictError) {
+                console.error("Error durante la predicción:", predictError);
+                document.getElementById("predictionResult").innerText = "Error en la predicción.";
+            }
+        }
+
+        window.onload = startCamera;
+    </script>
 </body>
+
 </html>
