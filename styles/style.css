@@ -99,8 +99,24 @@ input[type="file"] {
     /* Color para resultados de predicción */
 }
 
+.prediction-text {
+    margin-top: 20px;
+    font-size: 1.5em;
+    color: #ffcc00;
+    /* Color dorado para destacar el resultado */
+}
+
 footer {
     margin-top: 40px;
     font-size: 0.9em;
     color: #6c757d;
+}
+
+.upload-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    /* Centramos los elementos dentro del contenedor */
+    margin-bottom: 20px;
+    /* Espaciado inferior */
 }

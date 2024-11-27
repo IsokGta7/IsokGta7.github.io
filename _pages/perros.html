@@ -10,10 +10,22 @@
 </head>
 
 <body>
-    <h1>Clasificador de Perro o Gato</h1>
-    <input type="file" id="fileInput" accept="image/*">
-    <button onclick="classifyImage()">Clasificar Imagen</button>
-    <p id="result">Resultado: </p>
+    <header>
+        <h1>Clasificador de Perro o Gato</h1>
+    </header>
+
+    <main>
+        <div class="upload-container">
+            <input type="file" id="fileInput" accept="image/*">
+            <button class="button" onclick="classifyImage()">Clasificar Imagen</button>
+        </div>
+
+        <p id="result" class="result-text">Resultado: </p>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 Clasificador Perrigato</p>
+    </footer>
 
     <script>
         let model;
