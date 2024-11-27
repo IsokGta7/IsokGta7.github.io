@@ -60,6 +60,7 @@
         </select>
         <video id="video" width="180" height="180" autoplay></video>
         <canvas id="canvas" width="180" height="180" style="display:none;"></canvas>
+        <input type="file" accept="image/*" onchange="uploadImage(event)">
         <h2 id="predictionResult">Esperando predicción...</h2>
         <canvas id="processedCanvas" width="180" height="180" style="border: 1px solid #fff;"></canvas>
         <h3>Imagen Preprocesada</h3>
@@ -105,7 +106,7 @@
 
                 // Iniciar predicciones en tiempo real
                 if (predictionInterval) clearInterval(predictionInterval);
-                predictionInterval = setInterval(() => predict(video, model), 500);
+                predictionInterval = setInterval(() => predict(video, model), 2000); // Intervalo de 2 segundos
             }).catch(error => {
                 console.error("Error al acceder a la cámara:", error);
                 alert("No se pudo acceder a la cámara.");
@@ -131,6 +132,47 @@
 
             try {
                 const predictions = await model.predict(normalizedTensor).data();
+                const predictedClass = predictions.indexOf(Math.max(...predictions));
+                const flowerName = classNames[predictedClass];
+
+                document.getElementById("predictionResult").innerText = `Predicción: ${flowerName}`;
+                console.log("Predicción obtenida:", flowerName);
+            } catch (predictError) {
+                console.error("Error durante la predicción:", predictError);
+                document.getElementById("predictionResult").innerText = "Error en la predicción.";
+            }
+        }
+
+        function uploadImage(event) {
+            const file = event.target.files[0];
+            const reader = new FileReader();
+
+            reader.onload = function (e) {
+                const img = new Image();
+                img.src = e.target.result;
+
+                img.onload = function () {
+                    const canvas = document.getElementById("canvas");
+                    const ctx = canvas.getContext("2d");
+
+                    // Dibujar la imagen cargada en el canvas
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+                    const imgTensor = tf.browser.fromPixels(canvas).toFloat();
+                    const resizedTensor = tf.image.resizeBilinear(imgTensor, [180, 180]);
+                    const normalizedTensor = resizedTensor.div(255.0).expandDims(0);
+
+                    // Predecir la imagen cargada
+                    predictFromImage(normalizedTensor);
+                };
+            };
+
+            reader.readAsDataURL(file);
+        }
+
+        async function predictFromImage(tensor) {
+            try {
+                const predictions = await model.predict(tensor).data();
                 const predictedClass = predictions.indexOf(Math.max(...predictions));
                 const flowerName = classNames[predictedClass];
 
