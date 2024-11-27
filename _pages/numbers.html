@@ -1,39 +1,30 @@
----
-layout: default
-title: Numbers
-permalink: /numbers/
----
+<!DOCTYPE html>
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Reconocimiento de Números</title>
-    <style>
-        body {
-            color: #fff;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            flex-direction: column;
-            height: 100vh;
-            margin: 0;
-            text-align: center;
-        }
-        canvas {
-            border: 2px solid #fff;
-            margin-top: 20px;
-        }
-    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <link rel="stylesheet" href="/eirodriguezt/styles/style.css">
 </head>
-<body>
-    <h1>Proyecto: Reconocimiento de Números</h1>
-    <p>Dibuja un número en el canvas y presiona "Predecir" para que el modelo identifique el número.</p>
-    <canvas id="canvas" width="200" height="200"></canvas>
-    <button onclick="predict()">Predecir</button>
-    <button onclick="clearCanvas()">Limpiar Canvas</button>
-    <p id="prediction"></p>
+</head>
 
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
+<body>
+    <header>
+        <h1>Proyecto: Reconocimiento de Números</h1>
+        <p>Dibuja un número en el canvas y presiona "Predecir" para que el modelo identifique el número.</p>
+    </header>
+    <main>
+        <canvas id="canvas" width="200" height="200"></canvas>
+
+        <div class="button-container">
+            <button class="button" onclick="predict()">Predecir</button>
+            <button class="button" onclick="clearCanvas()">Limpiar Canvas</button>
+        </div>
+
+        <p id="prediction" class="prediction-text"></p>
+    </main>
+
     <script>
         let model;
         const canvas = document.getElementById('canvas');
@@ -42,7 +33,7 @@ permalink: /numbers/
 
         // Cargar el modelo TensorFlow.js
         async function loadModel() {
-            model = await tf.loadLayersModel('/assets/numbers/model_numbers.json');
+            model = await tf.loadLayersModel('/eirodriguezt/assets/numbers/model_numbers.json');
             console.log("Modelo cargado.");
         }
 

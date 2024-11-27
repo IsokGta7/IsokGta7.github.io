@@ -69,6 +69,28 @@ button:hover {
     /* Azul más oscuro */
 }
 
+/* Estilo para el select */
+select {
+    padding: 10px;
+    border: 1px solid #007bff;
+    border-radius: 5px;
+    background-color: rgba(255, 255, 255, 0.1);
+    color: white;
+    font-size: 1em;
+    margin: 15px 0;
+}
+
+/* Estilo para el input file */
+input[type="file"] {
+    margin: 15px 0;
+    padding: 10px;
+    border: 1px solid #007bff;
+    border-radius: 5px;
+    background-color: rgba(255, 255, 255, 0.1);
+    color: white;
+    font-size: 1em;
+}
+
 #predictionResult {
     margin-top: 20px;
     font-size: 1.2em;
