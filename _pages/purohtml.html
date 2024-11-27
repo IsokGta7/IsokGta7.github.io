@@ -1,62 +1,31 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Flower Classifier</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+  <title>Flower Classifier</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
 </head>
 <body>
-    <video id="video" width="224" height="224" autoplay></video>
-    <canvas id="canvas" width="224" height="224" style="display: none;"></canvas>
-    <p id="prediction"></p>
+  <video id="video" width="224" height="224" autoplay></video>
+  <canvas id="canvas" width="224" height="224" style="display: none;"></canvas>
+  <p id="prediction"></p>
 
-    <script>
-        // Load the TensorFlow.js model
-        const model = await tf.loadLayersModel('/eirodriguezt/assets/flowers/model_flowers.json');
+  <script>
+    async function loadModel() {
+      const model = await tf.loadLayersModel('/eirodriguezt/assets/flowers/model_flowers.json');
+      return model;
+    }
 
-        // Get a reference to the video and canvas elements
-        const video = document.getElementById('video');
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
+    async function start() {
+      const model = await loadModel(); // Call the async function here
 
-        // Get user media
-        navigator.mediaDevices.getUserMedia({ video: true })
-            .then(function(stream) {
-                video.srcObject = stream;
-            })
-            .catch(function(err) {
-                console.error('Error accessing camera:', err);
-            });
+      const video = document.getElementById('video');
+      const canvas = document.getElementById('canvas');
+      const ctx = canvas.getContext('2d');
 
-        // Function to preprocess the image
-        function preprocessImage(img) {
-            // Resize and convert to tensor
-            const tensor = tf.browser.fromPixels(img)
-                .resizeNearestNeighbor([180, 180])
-                .expandDims()
-                .toFloat()
-                .div(tf.scalar(255));
-            return tensor;
-        }
+      // ... rest of your code using the model
+    }
 
-        // Function to make a prediction
-        async function predict() {
-            // Draw the video frame to the canvas
-            ctx.drawImage(video, 0, 0, 224, 224);
-            const imageData = canvas.toDataURL('image/jpeg');
-
-            // Preprocess the image
-            const imageTensor = preprocessImage(imageData);
-
-            // Make the prediction
-            const predictions = await model.predict(imageTensor).data();
-            const predictedClass = ['daisy', 'dandelion', 'roses', 'sunflowers', 'tulips'][predictions.indexOf(Math.max(...predictions))];
-
-            // Display the prediction
-            document.getElementById('prediction').textContent = 'Predicted class: ' + predictedClass;
-        }
-
-        // Call the predict function every 1 second
-        setInterval(predict, 1000);
-    </script>
+    start(); // Call the start function after loading the model
+  </script>
 </body>
 </html>
