@@ -120,9 +120,8 @@
             // Dibujar frame del video en el canvas
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-            const imgTensor = tf.browser.fromPixels(canvas).toFloat();
-            const resizedTensor = tf.image.resizeBilinear(imgTensor, [180, 180]);
-            const normalizedTensor = resizedTensor.div(255.0).expandDims(0);
+            // Crear tensor de imagen sin normalización adicional
+            const imgTensor = tf.browser.fromPixels(canvas).expandDims(0);
 
             // Visualizar imagen preprocesada
             const processedCanvas = document.getElementById("processedCanvas");
@@ -131,7 +130,7 @@
             processedCtx.drawImage(video, 0, 0, processedCanvas.width, processedCanvas.height);
 
             try {
-                const predictions = await model.predict(normalizedTensor).data();
+                const predictions = await model.predict(imgTensor).data();
                 const predictedClass = predictions.indexOf(Math.max(...predictions));
                 const flowerName = classNames[predictedClass];
 
@@ -158,12 +157,11 @@
                     // Dibujar la imagen cargada en el canvas
                     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
-                    const imgTensor = tf.browser.fromPixels(canvas).toFloat();
-                    const resizedTensor = tf.image.resizeBilinear(imgTensor, [180, 180]);
-                    const normalizedTensor = resizedTensor.div(255.0).expandDims(0);
+                    // Crear tensor de imagen sin normalización adicional
+                    const imgTensor = tf.browser.fromPixels(canvas).expandDims(0);
 
                     // Predecir la imagen cargada
-                    predictFromImage(normalizedTensor);
+                    predictFromImage(imgTensor);
                 };
             };
 
