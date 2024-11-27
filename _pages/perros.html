@@ -1,29 +1,26 @@
----
-layout: default
-title: Perros
-permalink: /perros/
----
-
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Clasificador Perrigato</title>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <link rel="stylesheet" href="/eirodriguezt/styles/style.css">
 </head>
+
 <body>
     <h1>Clasificador de Perro o Gato</h1>
     <input type="file" id="fileInput" accept="image/*">
     <button onclick="classifyImage()">Clasificar Imagen</button>
     <p id="result">Resultado: </p>
-    
+
     <script>
         let model;
 
         // Cargar el modelo de TensorFlow.js
         async function loadModel() {
-            model = await tf.loadLayersModel('/assets/perros/model-perrigato.json');
+            model = await tf.loadLayersModel('/eirodriguezt/assets/perros/model-perrigato.json');
             console.log("Modelo cargado");
         }
 
@@ -67,7 +64,7 @@ permalink: /perros/
                     .toFloat()
                     .div(tf.scalar(255.0)) // Normalizar entre 0 y 1
                     .expandDims(0); // Agregar batch dimension
-                
+
                 return tensor;
             });
         }
@@ -76,4 +73,5 @@ permalink: /perros/
         loadModel();
     </script>
 </body>
+
 </html>
