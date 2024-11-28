@@ -68,16 +68,16 @@
             });
         }
 
-        // Preprocesar la imagen: redimensionar y normalizar
+        // Preprocesar la imagen: escala de grises y redimensionar
         function preprocessImage(image) {
             return tf.tidy(() => {
-                let tensor = tf.browser.fromPixels(image, 1) // 1 canal para escala de grises
+                let tensor = tf.browser.fromPixels(image, 1) // Convertir a tensor con 1 canal (escala de grises)
                     .resizeNearestNeighbor([100, 100]) // Redimensionar a 100x100
-                    .toFloat()
+                    .toFloat() // Convertir a tipo flotante
                     .div(tf.scalar(255.0)) // Normalizar entre 0 y 1
-                    .expandDims(0); // Agregar batch dimension
+                    .expandDims(0); // Agregar dimensión de lote para obtener forma [1, 100, 100, 1]
 
-                return tensor;
+                return tensor; // Devuelve el tensor con forma [1, 100, 100, 1]
             });
         }
 
