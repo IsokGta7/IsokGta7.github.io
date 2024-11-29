@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BTC/USDT Predictions</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+    <h1>BTC/USDT Predictions</h1>
+    <canvas id="predictionChart" width="400" height="200"></canvas>
+
+    <script>
+        // Load the TensorFlow.js model
+        let model;
+        tf.loadLayersModel('/eirodriguezt/assets/bitcoin/model_btc.json').then(loadedModel => {
+            model = loadedModel;
+            console.log('Model loaded successfully!');
+        });
+
+        // Set up Chart.js
+        const ctx = document.getElementById('predictionChart').getContext('2d');
+        const chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [], // Timestamps
+                datasets: [
+                    {
+                        label: 'Real Value',
+                        data: [],
+                        borderColor: 'blue',
+                        fill: false
+                    },
+                    {
+                        label: 'Prediction',
+                        data: [],
+                        borderColor: 'red',
+                        fill: false
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    x: {
+                        type: 'time',
+                        time: {
+                            unit: 'minute'
+                        }
+                    }
+                }
+            }
+        });
+
+        // Fetch data from Binance API
+        async function fetchBinanceData() {
+            const url = 'https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1m&limit=50';
+            const response = await fetch(url);
+            const data = await response.json();
+
+            // Extract relevant fields for prediction
+            const timestamps = data.map(candle => new Date(candle[0]).toISOString()); // Timestamps
+            const closingPrices = data.map(candle => parseFloat(candle[4])); // Closing prices
+            return { timestamps, closingPrices };
+        }
+
+        // Preprocess data and make predictions
+        async function updateChart() {
+            const { timestamps, closingPrices } = await fetchBinanceData();
+
+            // Predict the next closing price
+            const inputTensor = tf.tensor(closingPrices).reshape([1, closingPrices.length, 1]); // Reshape input
+            const predictionTensor = model.predict(inputTensor);
+            const prediction = predictionTensor.dataSync()[0];
+
+            // Update the chart with the latest data point
+            const latestTimestamp = timestamps[timestamps.length - 1];
+            const latestRealValue = closingPrices[closingPrices.length - 1];
+
+            chart.data.labels.push(latestTimestamp); // Add the timestamp
+            chart.data.datasets[0].data.push(latestRealValue); // Real value
+            chart.data.datasets[1].data.push(prediction); // Prediction
+
+            chart.update();
+
+            // Limit the chart to the last 100 data points
+            if (chart.data.labels.length > 100) {
+                chart.data.labels.shift();
+                chart.data.datasets[0].data.shift();
+                chart.data.datasets[1].data.shift();
+            }
+        }
+
+        // Update the chart every minute
+        setInterval(updateChart, 60000); // Fetch new data every minute
+    </script>
+</body>
+
+</html>
