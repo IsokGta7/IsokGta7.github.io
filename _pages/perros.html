@@ -17,7 +17,6 @@
             </ul>
         </nav>
         <h1>Clasificador de Perro o Gato</h1>
-
     </header>
 
     <main>
@@ -25,7 +24,11 @@
             <input type="file" id="fileInput" accept="image/*">
             <button class="button" onclick="classifyImage()">Clasificar Imagen</button>
         </div>
-
+        <div class="camera-container">
+            <button id="startCameraButton" class="button">Iniciar Cámara</button>
+            <video id="camera" autoplay playsinline muted></video>
+            <button id="stopCameraButton" class="button">Detener Cámara</button>
+        </div>
         <p id="result" class="result-text">Resultado: </p>
     </main>
 
@@ -35,6 +38,8 @@
 
     <script>
         let model;
+        let videoStream = null;
+        let cameraActive = false;
 
         // Cargar el modelo de TensorFlow.js
         async function loadModel() {
@@ -61,6 +66,50 @@
             document.getElementById('result').innerText = `Resultado: ${label}`;
         }
 
+        // Clasificar en tiempo real desde la cámara
+        async function classifyCameraFrame() {
+            if (!cameraActive) return;
+
+            const video = document.getElementById('camera');
+            const tensor = preprocessVideo(video);
+
+            const prediction = await model.predict(tensor).data();
+            const label = prediction[0] > 0.5 ? "Perro" : "Gato";
+
+            document.getElementById('result').innerText = `Resultado: ${label}`;
+
+            requestAnimationFrame(classifyCameraFrame);
+        }
+
+        // Iniciar la cámara
+        async function startCamera() {
+            const video = document.getElementById('camera');
+
+            try {
+                videoStream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: { exact: "environment" } }, // Para la cámara trasera
+                });
+                video.srcObject = videoStream;
+                cameraActive = true;
+
+                video.addEventListener('loadeddata', () => {
+                    classifyCameraFrame(); // Empezar predicciones en tiempo real
+                });
+            } catch (error) {
+                console.error("Error al iniciar la cámara:", error);
+                alert("No se pudo acceder a la cámara. Asegúrate de que los permisos están habilitados.");
+            }
+        }
+
+        // Detener la cámara
+        function stopCamera() {
+            if (videoStream) {
+                videoStream.getTracks().forEach(track => track.stop());
+                videoStream = null;
+            }
+            cameraActive = false;
+        }
+
         // Cargar imagen desde archivo
         function loadImage(file) {
             return new Promise((resolve) => {
@@ -74,7 +123,7 @@
             });
         }
 
-        // Preprocesar la imagen: escala de grises y redimensionar
+        // Preprocesar imagen: escala de grises y redimensionar
         function preprocessImage(image) {
             return tf.tidy(() => {
                 let tensor = tf.browser.fromPixels(image, 1) // Convertir a tensor con 1 canal (escala de grises)
@@ -83,12 +132,29 @@
                     .div(tf.scalar(255.0)) // Normalizar entre 0 y 1
                     .expandDims(0); // Agregar dimensión de lote para obtener forma [1, 100, 100, 1]
 
-                return tensor; // Devuelve el tensor con forma [1, 100, 100, 1]
+                return tensor;
+            });
+        }
+
+        // Preprocesar video para usar la cámara
+        function preprocessVideo(video) {
+            return tf.tidy(() => {
+                let tensor = tf.browser.fromPixels(video, 1) // Convertir a tensor con 1 canal (escala de grises)
+                    .resizeNearestNeighbor([100, 100]) // Redimensionar a 100x100
+                    .toFloat() // Convertir a tipo flotante
+                    .div(tf.scalar(255.0)) // Normalizar entre 0 y 1
+                    .expandDims(0); // Agregar dimensión de lote para obtener forma [1, 100, 100, 1]
+
+                return tensor;
             });
         }
 
         // Cargar el modelo al cargar la página
         loadModel();
+
+        // Event listeners para botones de cámara
+        document.getElementById('startCameraButton').addEventListener('click', startCamera);
+        document.getElementById('stopCameraButton').addEventListener('click', stopCamera);
     </script>
 </body>
 
