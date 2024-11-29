@@ -58,7 +58,7 @@
 
         // Fetch data from Binance API
         async function fetchBinanceData() {
-            const url = 'https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1m&limit=50';
+            const url = 'https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1m&limit=60'; // Fetch the last 60 data points
             const response = await fetch(url);
             const data = await response.json();
 
@@ -72,8 +72,11 @@
         async function updateChart() {
             const { timestamps, closingPrices } = await fetchBinanceData();
 
+            // Ensure the sequence length is 60
+            const inputClosingPrices = closingPrices.slice(-60); // Take the last 60 closing prices
+
             // Predict the next closing price
-            const inputTensor = tf.tensor(closingPrices).reshape([1, closingPrices.length, 1]); // Reshape input
+            const inputTensor = tf.tensor(inputClosingPrices).reshape([1, 60, 1]); // Reshape input to match model's expected shape
             const predictionTensor = model.predict(inputTensor);
             const prediction = predictionTensor.dataSync()[0];
 
