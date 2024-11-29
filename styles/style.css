@@ -120,3 +120,21 @@ footer {
     margin-bottom: 20px;
     /* Espaciado inferior */
 }
+
+.chart-container {
+    width: 100%;
+    /* Hacer el contenedor del gráfico responsivo */
+    max-width: 600px;
+    /* Ancho máximo */
+    margin: auto;
+    /* Centrar */
+    padding: 20px;
+    border: 1px solid #ccc;
+    /* Borde ligero */
+    border-radius: 8px;
+    /* Bordes redondeados */
+    background-color: white;
+    /* Color de fondo blanco */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    /* Sombra suave */
+}

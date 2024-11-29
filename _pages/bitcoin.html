@@ -5,18 +5,31 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BTC/USDT Predictions</title>
+    <link rel="stylesheet" href="/eirodriguezt/styles/style.css"> <!-- Link to external stylesheet -->
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
 </head>
 
 <body>
-    <h1>BTC/USDT Predictions</h1>
-    <canvas id="predictionChart" width="400" height="200"></canvas>
+    <header>
+        <h1>BTC/USDT Predictions</h1>
+    </header>
+
+    <main>
+        <div class="chart-container">
+            <canvas id="predictionChart" width="400" height="200"></canvas>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 BTC Prediction App. All Rights Reserved.</p>
+    </footer>
 
     <script>
         // Load the TensorFlow.js model
         let model;
+
         tf.loadLayersModel('/eirodriguezt/assets/bitcoin/model_btc.json').then(loadedModel => {
             model = loadedModel;
             console.log('Model loaded successfully!');
@@ -49,7 +62,7 @@
                     x: {
                         type: 'time',
                         time: {
-                            unit: 'seconds'
+                            unit: 'minute'
                         }
                     }
                 }
@@ -99,7 +112,7 @@
         }
 
         // Update the chart every minute
-        setInterval(updateChart, 6000); // Fetch new data every minute
+        setInterval(updateChart, 60000); // Fetch new data every minute
     </script>
 </body>
 
