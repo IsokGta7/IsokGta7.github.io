@@ -11,13 +11,16 @@
 
 <body>
     <header>
-        <ul>
-            <li><a href="/eirodriguezt/index.html">Inicio</a></li>
-        </ul>
+        <nav>
+            <ul>
+                <li><a href="/eirodriguezt/index.html">Inicio</a></li>
+            </ul>
+        </nav>
+        <h1>Proyecto: Reconocimiento de Números</h1>
     </header>
     <main>
 
-        <h1>Proyecto: Reconocimiento de Números</h1>
+
         <p>Dibuja un número en el canvas y presiona "Predecir" para que el modelo identifique el número.</p>
 
         <canvas id="canvas" width="200" height="200"></canvas>
@@ -29,6 +32,9 @@
 
         <p id="prediction" class="prediction-text"></p>
     </main>
+    <footer>
+        <p>&copy; Prediccion de Numeros. Ezequiel Isaac Rodriguez Tenorio.</p>
+    </footer>
 
     <script>
         let model;
