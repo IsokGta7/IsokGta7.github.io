@@ -117,63 +117,114 @@
 
     <!-- Scripts -->
     <script>
-        // Optimizado para dispositivos móviles
+        $(document).ready(function () {
+            $('.modal').modal({
+                dismissible: false
+            });
+
+            M.toast({
+                html: 'Cargando modelo. Por favor espere...',
+                displayLength: Infinity,
+                classes: 'rounded blue'
+            });
+
+            // Initialize YOLO
+            window.yolo = ml5.YOLO(modelLoaded, {
+                filterBoxesThreshold: 0.01,
+                IOUThreshold: 0.01,
+                classProbThreshold: 0.5
+            });
+
+            function modelLoaded() {
+                M.Toast.dismissAll();
+                M.toast({
+                    html: 'Modelo cargado exitosamente',
+                    displayLength: 1000,
+                    classes: 'rounded green'
+                });
+                $('.btn-large').removeClass('disabled');
+            }
+        });
+
+        // Load video and start YOLO detection
+        function loadVideo(event) {
+            const video = document.getElementById('uploaded_video');
+            const canvas = document.getElementById('outputCanvas');
+            const ctx = canvas.getContext('2d');
+            const file = event.target.files[0];
+            const url = URL.createObjectURL(file);
+            video.src = url;
+
+            video.addEventListener('loadeddata', () => {
+                detectObjects(video, canvas, ctx);
+            });
+        }
+
         function detectObjects(video, canvas, ctx) {
             video.play();
 
-            const detectionInterval = setInterval(async () => {
+            const detectionInterval = setInterval(() => {
                 if (!video.paused && !video.ended) {
-                    // Tomar snapshot del video y escalar la resolución
-                    const width = 320; // Reducción de resolución para dispositivos móviles
-                    const height = 240;
-                    canvas.width = width;
-                    canvas.height = height;
+                    // Detectar objetos en el frame actual del video
+                    yolo.detect(video, (err, results) => {
+                        if (err) {
+                            console.error("Error detectando objetos:", err);
+                            clearInterval(detectionInterval);
+                            return;
+                        }
 
-                    ctx.drawImage(video, 0, 0, width, height);
-
-                    // Detectar objetos en el frame actual
-                    try {
-                        const results = await new Promise((resolve, reject) => {
-                            yolo.detect(canvas, (err, res) => (err ? reject(err) : resolve(res)));
-                        });
-
-                        // Limpia el canvas
+                        // Limpiar el canvas
                         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-                        // Dibuja los resultados
-                        results.forEach(result => {
-                            ctx.beginPath();
-                            ctx.rect(
-                                result.x * canvas.width,
-                                result.y * canvas.height,
-                                result.width * canvas.width,
-                                result.height * canvas.height
-                            );
-                            ctx.lineWidth = 2;
-                            ctx.strokeStyle = 'red'; // Color del cuadro
-                            ctx.stroke();
+                        // Dibujar el frame actual en el canvas
+                        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-                            ctx.fillStyle = 'red'; // Color del texto
-                            ctx.font = '12px Arial';
-                            ctx.fillText(
-                                `${result.label} (${(result.confidence * 100).toFixed(1)}%)`,
-                                result.x * canvas.width,
-                                result.y * canvas.height > 10 ? result.y * canvas.height - 5 : 10
-                            );
-                        });
+                        // Dibujar las cajas de los objetos detectados
+                        if (results) {
+                            results.forEach(result => {
+                                const { x, y, width, height, label, confidence } = result;
 
-                        // Actualiza el número de objetos detectados
-                        document.querySelector('.objno').textContent = "Objetos detectados: " + results.length;
-                    } catch (err) {
-                        console.error("Error detectando objetos:", err);
-                    }
+                                // Dibujar caja
+                                ctx.beginPath();
+                                ctx.rect(
+                                    x * canvas.width,
+                                    y * canvas.height,
+                                    width * canvas.width,
+                                    height * canvas.height
+                                );
+                                ctx.lineWidth = 2;
+                                ctx.strokeStyle = 'red';
+                                ctx.stroke();
+
+                                // Dibujar texto
+                                ctx.fillStyle = 'red';
+                                ctx.font = '16px Arial';
+                                const text = label
+                                    ? `${label} (${(confidence * 100).toFixed(2)}%)`
+                                    : "Desconocido";
+                                ctx.fillText(
+                                    text,
+                                    x * canvas.width,
+                                    y * canvas.height > 10 ? y * canvas.height - 5 : 10
+                                );
+                            });
+
+                            // Actualizar la cantidad de objetos detectados
+                            document.querySelector('.objno').textContent = "Objetos detectados: " + results.length;
+                        }
+                    });
                 } else {
                     clearInterval(detectionInterval);
                 }
-            }, 300); // Mayor intervalo de detección
+            }, 100); // Actualizar cada 100ms
+        }
+
+
+        function openVideoUpload() {
+            // Open the video upload modal
+            $('#modal2').modal('open');
         }
     </script>
-
 
 
     <script src="/eirodriguezt/assets/YOLO/script_from-video.js"></script>
