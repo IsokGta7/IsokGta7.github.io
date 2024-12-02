@@ -63,8 +63,8 @@ function detectObjects(video, ctx) {
                 // Draw bounding boxes and labels for each detected object
                 results.forEach(result => {
                     // Transform proportional coordinates to pixel values
-                    const x = result.x * canvas.width;
-                    const y = result.y * canvas.height;
+                    const x = result.x * canvas.width; // canvas.width debe ser definido por ID
+                    const y = result.y * canvas.height; // canvas.height debe ser definido por ID
                     const width = result.w * canvas.width; // Usar result.w en lugar de result.width
                     const height = result.h * canvas.height; // Usar result.h en lugar de result.height
 
