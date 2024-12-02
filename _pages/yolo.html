@@ -45,11 +45,14 @@
             <!-- Action Buttons -->
             <div class="row center-align">
                 <div class="col s12">
-                    <button data-target="modal2" class="btn-large waves-effect waves-light purple" style="margin: 5px;"
-                        onclick="loadVideo()">
+                    <!-- Botón modificado para cargar video -->
+                    <label for="video_input" class="btn-large waves-effect waves-light purple"
+                        style="margin: 5px; cursor: pointer;">
                         <i class="material-icons left">video_library</i>
                         Desde Video
-                    </button>
+                    </label>
+                    <input type="file" id="video_input" accept="video/*" style="display: none;"
+                        onchange="loadVideo(event)">
                     <button data-target="modal1" onclick="showWebcam()" class="btn-large waves-effect waves-light blue"
                         style="margin: 5px;">
                         <i class="material-icons left">videocam</i>
