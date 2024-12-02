@@ -211,6 +211,7 @@
 
                             // Actualizar la cantidad de objetos detectados
                             document.querySelector('.objno').textContent = "Objetos detectados: " + results.length;
+                            console.log(results);
                         }
                     });
                 } else {
@@ -218,6 +219,8 @@
                 }
             }, 100); // Actualizar cada 100ms
         }
+
+
 
 
         function openVideoUpload() {
