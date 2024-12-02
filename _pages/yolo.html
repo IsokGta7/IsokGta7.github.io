@@ -101,6 +101,7 @@
                 <div class="video-preview-container">
                     <video id="uploaded_video" width="640" height="480" controls></video>
                 </div>
+                <!-- Canvas for drawing the detection boxes -->
                 <canvas id="outputCanvas" width="640" height="480"></canvas>
             </div>
         </div>
@@ -123,7 +124,7 @@
             });
 
             M.toast({
-                html: 'Cargando modelo. Por favor espere...',
+                html: 'Cargando modelo. Por favor espere..',
                 displayLength: Infinity,
                 classes: 'rounded blue'
             });
@@ -156,79 +157,53 @@
             video.src = url;
 
             video.addEventListener('loadeddata', () => {
-                detectObjects(video, canvas, ctx);
+                // Start detection when the video is ready
+                detectObjects(video, ctx);
             });
         }
 
-        function detectObjects(video, canvas, ctx) {
+        function detectObjects(video, ctx) {
             video.play();
 
-            const detectionInterval = setInterval(() => {
+            setInterval(() => {
                 if (!video.paused && !video.ended) {
-                    // Detectar objetos en el frame actual del video
+                    // Pass the video element to the model
                     yolo.detect(video, (err, results) => {
                         if (err) {
-                            console.error("Error detectando objetos:", err);
-                            clearInterval(detectionInterval);
+                            console.error(err);
                             return;
                         }
 
-                        // Limpiar el canvas
-                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        // Clear previous drawings
+                        ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 
-                        // Dibujar el frame actual en el canvas
-                        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                        // Draw the current video frame to the canvas
+                        ctx.drawImage(video, 0, 0, ctx.canvas.width, ctx.canvas.height);
 
-                        // Dibujar las cajas de los objetos detectados
-                        if (results) {
-                            results.forEach(result => {
-                                const { x, y, width, height, label, confidence } = result;
+                        // Draw bounding boxes and labels for each detected object
+                        results.forEach(result => {
+                            ctx.beginPath();
+                            ctx.rect(result.x, result.y, result.width, result.height);
+                            ctx.lineWidth = 2;
+                            ctx.strokeStyle = 'red'; // Box color
+                            ctx.stroke();
 
-                                // Dibujar caja
-                                ctx.beginPath();
-                                ctx.rect(
-                                    x * canvas.width,
-                                    y * canvas.height,
-                                    width * canvas.width,
-                                    height * canvas.height
-                                );
-                                ctx.lineWidth = 2;
-                                ctx.strokeStyle = 'red';
-                                ctx.stroke();
+                            ctx.fillStyle = 'red'; // Text color
+                            ctx.fillText(result.label + ` (${(result.confidence * 100).toFixed(2)}%)`, result.x, result.y > 10 ? result.y - 5 : 10);
+                        });
 
-                                // Dibujar texto
-                                ctx.fillStyle = 'red';
-                                ctx.font = '16px Arial';
-                                const text = label
-                                    ? `${label} (${(confidence * 100).toFixed(2)}%)`
-                                    : "Desconocido";
-                                ctx.fillText(
-                                    text,
-                                    x * canvas.width,
-                                    y * canvas.height > 10 ? y * canvas.height - 5 : 10
-                                );
-                            });
-
-                            // Actualizar la cantidad de objetos detectados
-                            document.querySelector('.objno').textContent = "Objetos detectados: " + results.length;
-                            console.log(results);
-                        }
+                        // Update object count in the UI
+                        document.querySelector('.objno').textContent = "Objetos detectados: " + results.length;
                     });
-                } else {
-                    clearInterval(detectionInterval);
                 }
-            }, 100); // Actualizar cada 100ms
+            }, 100); // Update every 100ms
         }
-
-
-
 
         function openVideoUpload() {
             // Open the video upload modal
             $('#modal2').modal('open');
         }
     </script>
-
 
     <script src="/eirodriguezt/assets/YOLO/script_from-video.js"></script>
     <script src="/eirodriguezt/assets/YOLO/script_real-time.js"></script>
