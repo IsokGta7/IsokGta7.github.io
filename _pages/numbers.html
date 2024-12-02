@@ -1,46 +1,82 @@
 <!DOCTYPE html>
+<html lang="es">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Reconocimiento de Números</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
 
+    <!-- Librerías CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <link rel="stylesheet" href="/eirodriguezt/styles/Better.css">
+
+    <!-- TensorFlow.js -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
 </head>
 
-
 <body>
+    <!-- Header -->
     <header>
-        <nav>
-            <ul>
-                <li><a href="/eirodriguezt/index.html">Inicio</a></li>
-            </ul>
+        <nav class="nav-wrapper">
+            <div class="container">
+                <a href="/eirodriguezt/index.html" class="brand-logo">
+                    <i class="material-icons left">home</i>Inicio
+                </a>
+                <ul class="right hide-on-med-and-down">
+                    <li><a href="#about">Acerca de</a></li>
+                </ul>
+            </div>
         </nav>
-        <h1>Proyecto: Reconocimiento de Números</h1>
+        <div class="container center-align">
+            <h1 class="header">Proyecto: Reconocimiento de Números</h1>
+            <p class="flow-text grey-text text-lighten-1">
+                Dibuja un número en el lienzo y presiona "Predecir" para que el modelo lo identifique.
+            </p>
+        </div>
     </header>
-    <main>
 
-
-        <p>Dibuja un número en el canvas y presiona "Predecir" para que el modelo identifique el número.</p>
-
-        <canvas id="canvas" width="200" height="200"></canvas>
-
-        <div class="button-container">
-            <button class="button" onclick="predict()">Predecir</button>
-            <button class="button" onclick="clearCanvas()">Limpiar Canvas</button>
+    <!-- Main Content -->
+    <main class="container">
+        <!-- Canvas -->
+        <div class="row center-align">
+            <div class="col s12">
+                <canvas id="canvas" width="200" height="200" class="z-depth-2"></canvas>
+            </div>
         </div>
 
-        <p id="prediction" class="prediction-text"></p>
+        <!-- Botones -->
+        <div class="row center-align">
+            <div class="col s12">
+                <button class="btn-large waves-effect waves-light blue" onclick="predict()">
+                    <i class="material-icons left">check</i>Predecir
+                </button>
+                <button class="btn-large waves-effect waves-light red lighten-1" onclick="clearCanvas()">
+                    <i class="material-icons left">clear</i>Limpiar Canvas
+                </button>
+            </div>
+        </div>
+
+        <!-- Predicción -->
+        <div class="row center-align">
+            <div class="col s12">
+                <p id="prediction" class="prediction-text flow-text amber-text text-darken-3"></p>
+            </div>
+        </div>
     </main>
-    <footer>
-        <p>&copy; Prediccion de Numeros. Ezequiel Isaac Rodriguez Tenorio.</p>
+
+    <!-- Footer -->
+    <footer class="page-footer grey darken-4">
+        <div class="container center-align">
+            <p class="white-text">&copy; Predicción de Números. Ezequiel Isaac Rodriguez Tenorio.</p>
+        </div>
     </footer>
 
+    <!-- Script -->
     <script>
         let model;
+
+        // Configuración de canvas
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
         let isDrawing = false;
@@ -49,16 +85,19 @@
         async function loadModel() {
             model = await tf.loadLayersModel('/eirodriguezt/assets/numbers/model_numbers.json');
             console.log("Modelo cargado.");
+            M.toast({
+                html: 'Modelo cargado exitosamente.',
+                classes: 'rounded green'
+            });
         }
 
-        // Función para comenzar a dibujar
+        // Funciones para dibujar en el canvas
         function startDrawing(e) {
             isDrawing = true;
             ctx.beginPath();
-            draw(e); // Llamamos a draw inmediatamente para comenzar en la posición inicial
+            draw(e);
         }
 
-        // Función para dibujar en el canvas
         function draw(e) {
             if (!isDrawing) return;
 
@@ -76,55 +115,59 @@
             ctx.moveTo(x, y);
         }
 
-        // Función para detener el dibujo
         function stopDrawing() {
             isDrawing = false;
             ctx.beginPath();
         }
 
-        // Eventos de mouse y touch
+        // Eventos del mouse y touch
         canvas.addEventListener('mousedown', startDrawing);
         canvas.addEventListener('mousemove', draw);
         canvas.addEventListener('mouseup', stopDrawing);
-        canvas.addEventListener('mouseleave', stopDrawing); // Detener si el mouse sale del canvas
+        canvas.addEventListener('mouseleave', stopDrawing);
         canvas.addEventListener('touchstart', startDrawing);
         canvas.addEventListener('touchmove', draw);
         canvas.addEventListener('touchend', stopDrawing);
 
-        // Limpiar el canvas y la predicción
+        // Limpiar el canvas y el texto de predicción
         function clearCanvas() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            document.getElementById('prediction').textContent = ""; // Limpiar el texto de predicción
+            document.getElementById('prediction').textContent = ""; // Limpiar predicción
         }
 
-        // Limpiar y predecir
+        // Predecir número
         async function predict() {
             const tensor = preprocessCanvas(canvas);
             const prediction = await model.predict(tensor).data();
             const result = Array.from(prediction).indexOf(Math.max(...prediction));
             document.getElementById('prediction').textContent = "Número predicho: " + result;
+            M.toast({
+                html: `Número predicho: ${result}`,
+                classes: 'rounded orange darken-2'
+            });
         }
 
-        // Procesar el canvas para ajustarlo a las dimensiones requeridas
+        // Preprocesar el canvas
         function preprocessCanvas(canvas) {
             const tmpCanvas = document.createElement('canvas');
             const tmpCtx = tmpCanvas.getContext('2d');
-            tmpCanvas.width = 28;  // Cambié a 28x28 para ajustarse al modelo
+            tmpCanvas.width = 28; // Dimensiones requeridas por el modelo
             tmpCanvas.height = 28;
 
-            tmpCtx.drawImage(canvas, 0, 0, 28, 28); // Redimensionamos la imagen
+            tmpCtx.drawImage(canvas, 0, 0, 28, 28); // Redimensionar imagen
 
             // Convertir a tensor de un solo canal
             const imageData = tmpCtx.getImageData(0, 0, 28, 28);
             let grayscale = [];
             for (let i = 0; i < imageData.data.length; i += 4) {
-                // Solo tomar el canal rojo para el gris
                 grayscale.push(imageData.data[i] / 255); // Normalizamos a [0, 1]
             }
-            // Aseguramos que la forma sea [1, 28, 28, 1]
             return tf.tensor4d(grayscale, [1, 28, 28, 1]);
         }
 
+        // Cargar el modelo al inicio
         loadModel();
     </script>
 </body>
+
+</html>
