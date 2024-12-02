@@ -1,15 +1,15 @@
 body {
     font-family: Arial, sans-serif;
-    background-image: url('https://img.freepik.com/free-photo/black-painted-wall-textured-background_53876-110728.jpg');
-    background-size: cover;
-    background-position: center;
+    background: linear-gradient(135deg, #1e1e1e, #292929);
+    /* Gradiente de fondo */
     margin: 0;
     color: #fff;
 }
 
 header,
 footer {
-    background-color: rgba(0, 0, 0, 0.8);
+    background-color: rgba(0, 0, 0, 0.85);
+    /* Fondo oscuro para el header y footer */
     padding: 1rem;
     text-align: center;
 }
@@ -69,6 +69,23 @@ button:hover {
     /* Azul más oscuro */
 }
 
+.button {
+    padding: 10px 20px;
+    background-color: #007bff;
+    /* Azul Bootstrap */
+    border: none;
+    border-radius: 5px;
+    color: white;
+    font-size: 1em;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.button:hover {
+    background-color: #0056b3;
+    /* Azul más oscuro */
+}
+
 /* Estilo para el select */
 select {
     padding: 10px;
@@ -106,10 +123,20 @@ input[type="file"] {
     /* Color dorado para destacar el resultado */
 }
 
+.result-text {
+    margin-top: 20px;
+    font-size: 1.5em;
+    font-weight: bold;
+    /* Enfatizar resultado */
+    color: #ffcc00;
+    /* Color especial para el resultado */
+}
+
 footer {
     margin-top: 40px;
     font-size: 0.9em;
     color: #6c757d;
+    /* Color de texto más claro para mejor legibilidad */
 }
 
 .upload-container {
@@ -129,12 +156,12 @@ footer {
     margin: auto;
     /* Centrar */
     padding: 20px;
-    border: 1px solid #ccc;
-    /* Borde ligero */
+    border: 1px solid #444;
+    /* Borde más oscuro */
     border-radius: 8px;
     /* Bordes redondeados */
-    background-color: white;
-    /* Color de fondo blanco */
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    /* Sombra suave */
+    background-color: #1e1e1e;
+    /* Fondo del contenedor oscuro */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+    /* Sombra más pronunciada */
 }
