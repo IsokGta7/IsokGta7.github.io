@@ -1,4 +1,3 @@
-
 $(document).ready(function () {
     $('.modal').modal({
         dismissible: false
@@ -63,19 +62,24 @@ function detectObjects(video, ctx) {
 
                 // Draw bounding boxes and labels for each detected object
                 results.forEach(result => {
-                    console.log(result); // Inspecciona las propiedades disponibles
+                    // Transform proportional coordinates to pixel values
+                    const x = result.x * canvas.width;
+                    const y = result.y * canvas.height;
+                    const width = result.w * canvas.width; // Usar result.w en lugar de result.width
+                    const height = result.h * canvas.height; // Usar result.h en lugar de result.height
+
+                    // Dibuja el rectángulo
                     ctx.beginPath();
-                    ctx.rect(result.x, result.y, result.width, result.height);
+                    ctx.rect(x, y, width, height);
                     ctx.lineWidth = 2;
                     ctx.strokeStyle = 'red'; // Color del borde
                     ctx.stroke();
 
-                    // Ajusta según la propiedad correcta
-                    const label = result.label || result.className || 'unknown';
+                    // Ajusta la etiqueta ya que ahora usamos propiedades adecuadas
+                    const label = result.className || 'unknown';
                     ctx.fillStyle = 'red'; // Color del texto
-                    ctx.fillText(label + ` (${(result.confidence * 100).toFixed(2)}%)`, result.x, result.y > 10 ? result.y - 5 : 10);
+                    ctx.fillText(label + ` (${(result.classProb * 100).toFixed(2)}%)`, x, y > 10 ? y - 5 : 10);
                 });
-
 
                 // Update object count in the UI
                 document.querySelector('.objno').textContent = "Objetos detectados: " + results.length;
