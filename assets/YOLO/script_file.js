@@ -62,23 +62,28 @@ function detectObjects(video, ctx) {
 
                 // Draw bounding boxes and labels for each detected object
                 results.forEach(result => {
-                    // Transform proportional coordinates to pixel values
-                    const x = result.x * canvas.width; // canvas.width debe ser definido por ID
-                    const y = result.y * canvas.height; // canvas.height debe ser definido por ID
-                    const width = result.w * canvas.width; // Usar result.w en lugar de result.width
-                    const height = result.h * canvas.height; // Usar result.h en lugar de result.height
+                    // Verifica que los resultados contengan las propiedades necesarias
+                    if (result.x !== undefined && result.y !== undefined && result.w !== undefined && result.h !== undefined) {
+                        // Transform proportional coordinates to pixel values
+                        const x = result.x * canvas.width;
+                        const y = result.y * canvas.height;
+                        const width = result.w * canvas.width;
+                        const height = result.h * canvas.height;
 
-                    // Dibuja el rectángulo
-                    ctx.beginPath();
-                    ctx.rect(x, y, width, height);
-                    ctx.lineWidth = 2;
-                    ctx.strokeStyle = 'red'; // Color del borde
-                    ctx.stroke();
+                        // Dibuja el rectángulo
+                        ctx.beginPath();
+                        ctx.rect(x, y, width, height);
+                        ctx.lineWidth = 2;
+                        ctx.strokeStyle = 'red';
+                        ctx.stroke();
 
-                    // Ajusta la etiqueta ya que ahora usamos propiedades adecuadas
-                    const label = result.className || 'unknown';
-                    ctx.fillStyle = 'red'; // Color del texto
-                    ctx.fillText(label + ` (${(result.classProb * 100).toFixed(2)}%)`, x, y > 10 ? y - 5 : 10);
+                        // Ajusta la etiqueta ya que ahora usamos propiedades adecuadas
+                        const label = result.className || 'unknown';
+                        ctx.fillStyle = 'red';
+                        ctx.fillText(label + ` (${(result.classProb * 100).toFixed(2)}%)`, x, y > 10 ? y - 5 : 10);
+                    } else {
+                        console.warn("Resultado no contiene propiedades esperadas:", result);
+                    }
                 });
 
                 // Update object count in the UI
