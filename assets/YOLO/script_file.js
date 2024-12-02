@@ -75,12 +75,12 @@ function detectObjects(video, ctx, canvas) {
                         ctx.beginPath();
                         ctx.rect(x, y, width, height);
                         ctx.lineWidth = 2;
-                        ctx.strokeStyle = 'red';
+                        ctx.strokeStyle = 'blue';
                         ctx.stroke();
 
                         // Ajusta la etiqueta ya que ahora usamos propiedades adecuadas
                         const label = result.className || 'unknown';
-                        ctx.fillStyle = 'red';
+                        ctx.fillStyle = 'green';
                         ctx.fillText(label + ` (${(result.classProb * 100).toFixed(2)}%)`, x, y > 10 ? y - 5 : 10);
                     } else {
                         console.warn("Resultado no contiene propiedades esperadas:", result);
