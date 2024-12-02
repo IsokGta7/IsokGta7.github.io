@@ -74,7 +74,10 @@
                 <span class="box_label"></span>
             </div>
             <div class="modal-content">
+                <!-- Video feed -->
                 <video id="webcam_feed" autoplay></video>
+                <!-- Canvas to draw bounding boxes -->
+                <canvas id="outputCanvas" width="320" height="240"></canvas>
             </div>
         </div>
 
@@ -120,15 +123,6 @@
     <script src="/eirodriguezt/assets/YOLO/script_file.js"></script>
     <script src="/eirodriguezt/assets/YOLO/script_from-video.js"></script>
     <script src="/eirodriguezt/assets/YOLO/script_real-time.js"></script>
-
-    <!-- Analytics -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-100423949-5"></script>
-    <script>
-        window.dataLayer = window.dataLayer || [];
-        function gtag() { dataLayer.push(arguments); }
-        gtag('js', new Date());
-        gtag('config', 'UA-100423949-5');
-    </script>
 </body>
 
 </html>
