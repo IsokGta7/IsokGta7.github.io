@@ -1,34 +1,24 @@
+var all_frames = [];
+var all_output = [];
+var i = 0;
 
-$(document).ready(function () {
-    $('.modal').modal({
-        dismissible: false
-    });
-
-    M.toast({
-        html: 'Cargando modelo. Por favor espere..',
-        displayLength: Infinity,
-        classes: 'rounded blue'
-    });
-
-    // Initialize YOLO
-    window.yolo = ml5.YOLO(modelLoaded, {
-        filterBoxesThreshold: 0.01,
-        IOUThreshold: 0.01,
-        classProbThreshold: 0.5
-    });
-
-    function modelLoaded() {
-        M.Toast.dismissAll();
-        M.toast({
-            html: 'Modelo cargado exitosamente',
-            displayLength: 1000,
-            classes: 'rounded green'
-        });
-        $('.btn-large').removeClass('disabled');
-    }
+const yolo = ml5.YOLO(modelLoaded, {
+    filterBoxesThreshold: 0.01,
+    IOUThreshold: 0.01,
+    classProbThreshold: 0.5
 });
 
-// Load video and start YOLO detection
+function modelLoaded() {
+    console.log('Modelo cargado exitosamente.');
+    document.querySelector('.btn-large').classList.remove('disabled');
+    M.toast({
+        html: 'Modelo cargado exitosamente',
+        displayLength: 2000,
+        classes: 'rounded green'
+    });
+}
+
+// Manejo de carga de video
 function loadVideo(event) {
     const video = document.getElementById('uploaded_video');
     const canvas = document.getElementById('outputCanvas');
@@ -38,53 +28,92 @@ function loadVideo(event) {
     video.src = url;
 
     video.addEventListener('loadeddata', () => {
-        // Start detection when the video is ready
-        detectObjects(video, ctx);
+        processFrames(video, canvas, ctx);
     });
 }
 
-function detectObjects(video, ctx) {
-    video.play();
+// Procesar cuadros del video
+function processFrames(video, canvas, ctx) {
+    video.currentTime = 0;
 
-    setInterval(() => {
-        if (!video.paused && !video.ended) {
-            // Pass the video element to the model
-            yolo.detect(video, (err, results) => {
-                if (err) {
-                    console.error(err);
-                    return;
-                }
+    video.addEventListener('seeked', () => {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-                // Clear previous drawings
-                ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+        const currentFrame = document.createElement('canvas');
+        currentFrame.width = canvas.width;
+        currentFrame.height = canvas.height;
+        const currentFrameCtx = currentFrame.getContext('2d');
+        currentFrameCtx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        all_frames.push(currentFrame);
 
-                // Draw the current video frame to the canvas
-                ctx.drawImage(video, 0, 0, ctx.canvas.width, ctx.canvas.height);
-
-                // Draw bounding boxes and labels for each detected object
-                results.forEach(result => {
-                    console.log(result); // Inspecciona las propiedades disponibles
-                    ctx.beginPath();
-                    ctx.rect(result.x, result.y, result.width, result.height);
-                    ctx.lineWidth = 2;
-                    ctx.strokeStyle = 'red'; // Color del borde
-                    ctx.stroke();
-
-                    // Ajusta según la propiedad correcta
-                    const label = result.label || result.className || 'unknown';
-                    ctx.fillStyle = 'red'; // Color del texto
-                    ctx.fillText(label + ` (${(result.confidence * 100).toFixed(2)}%)`, result.x, result.y > 10 ? result.y - 5 : 10);
-                });
-
-
-                // Update object count in the UI
-                document.querySelector('.objno').textContent = "Objetos detectados: " + results.length;
-            });
+        if (video.currentTime < video.duration) {
+            video.currentTime += 0.1; // Avanzar 0.1 segundos por cuadro
+        } else {
+            startDetecting();
         }
-    }, 100); // Update every 100ms
+    });
 }
 
+// Iniciar detección de objetos
+function startDetecting() {
+    yolo.detect(getImg(all_frames[i]), function (err, results) {
+        if (err) {
+            console.error(err);
+            return;
+        }
+
+        const ctx = all_frames[i].getContext('2d');
+        ctx.strokeStyle = 'red';
+        ctx.lineWidth = 2;
+
+        results.forEach(result => {
+            ctx.beginPath();
+            ctx.rect(result.x * ctx.canvas.width, result.y * ctx.canvas.height, result.width * ctx.canvas.width, result.height * ctx.canvas.height);
+            ctx.stroke();
+            ctx.font = '13px Arial';
+            ctx.fillStyle = 'red';
+            ctx.fillText(
+                `${result.className || result.label} (${(result.confidence * 100).toFixed(2)}%)`,
+                result.x * ctx.canvas.width,
+                result.y * ctx.canvas.height - 5
+            );
+        });
+
+        all_output.push(results);
+        document.getElementById('frames').appendChild(all_frames[i]);
+
+        i++;
+        if (i < all_frames.length) {
+            startDetecting();
+        } else {
+            console.log('Detección completa:', all_output);
+        }
+    });
+}
+
+// Convertir canvas a imagen
+function getImg(canvas) {
+    const image = new Image();
+    image.width = canvas.width;
+    image.height = canvas.height;
+    image.src = canvas.toDataURL('image/png');
+    return image;
+}
+
+$(document).ready(function () {
+    $('.modal').modal({
+        dismissible: false
+    });
+
+    M.toast({
+        html: 'Cargando modelo. Por favor espere...',
+        displayLength: Infinity,
+        classes: 'rounded blue'
+    });
+});
+
+// Abrir modal de carga de video
 function openVideoUpload() {
-    // Open the video upload modal
     $('#modal2').modal('open');
 }
