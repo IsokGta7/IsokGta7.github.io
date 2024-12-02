@@ -1,3 +1,4 @@
+// Initialize YOLO
 $(document).ready(function () {
     $('.modal').modal({
         dismissible: false
@@ -30,7 +31,7 @@ $(document).ready(function () {
 // Load video and start YOLO detection
 function loadVideo(event) {
     const video = document.getElementById('uploaded_video');
-    const canvas = document.getElementById('outputCanvas');
+    const canvas = document.getElementById('outputCanvas'); // Obtén el canvas aquí
     const ctx = canvas.getContext('2d');
     const file = event.target.files[0];
     const url = URL.createObjectURL(file);
@@ -38,11 +39,11 @@ function loadVideo(event) {
 
     video.addEventListener('loadeddata', () => {
         // Start detection when the video is ready
-        detectObjects(video, ctx);
+        detectObjects(video, ctx, canvas);  // Pasa canvas también
     });
 }
 
-function detectObjects(video, ctx) {
+function detectObjects(video, ctx, canvas) {
     video.play();
 
     setInterval(() => {
@@ -55,10 +56,10 @@ function detectObjects(video, ctx) {
                 }
 
                 // Clear previous drawings
-                ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
 
                 // Draw the current video frame to the canvas
-                ctx.drawImage(video, 0, 0, ctx.canvas.width, ctx.canvas.height);
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
                 // Draw bounding boxes and labels for each detected object
                 results.forEach(result => {
