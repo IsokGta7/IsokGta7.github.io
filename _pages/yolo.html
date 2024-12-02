@@ -128,6 +128,7 @@
                 classes: 'rounded blue'
             });
 
+            // Initialize YOLO model
             const yolo = ml5.YOLO(modelLoaded, {
                 filterBoxesThreshold: 0.01,
                 IOUThreshold: 0.01,
@@ -143,39 +144,63 @@
                 });
                 $('.btn-large').removeClass('disabled');
             }
+
+            // Load video and start YOLO detection
+            window.loadVideo = function (event) {
+                const video = document.getElementById('uploaded_video');
+                const file = event.target.files[0];
+                const url = URL.createObjectURL(file);
+                video.src = url;
+
+                video.addEventListener('loadeddata', () => {
+                    // Start detection when the video is ready
+                    detectObjects(video);
+                });
+            }
+
+            function detectObjects(video) {
+                // Start YOLO detection on each frame
+                video.play();
+                const canvas = document.createElement('canvas'); // Create temporary canvas
+                const ctx = canvas.getContext('2d');
+
+                setInterval(() => {
+                    if (!video.paused && !video.ended) {
+                        // Set canvas dimensions to video frame size
+                        canvas.width = video.videoWidth;
+                        canvas.height = video.videoHeight;
+                        ctx.drawImage(video, 0, 0, canvas.width, canvas.height); // Draw the video frame on the canvas
+
+                        const detections = yolo.detect(canvas); // Use canvas instead of video element
+                        detections.then(results => {
+                            // Clear previous detections
+                            ctx.clearRect(0, 0, canvas.width, canvas.height);
+                            ctx.drawImage(video, 0, 0, canvas.width, canvas.height); // Redraw the video frame
+
+                            results.forEach(result => {
+                                // Draw bounding box and label for each detected object
+                                ctx.beginPath();
+                                ctx.rect(result.x, result.y, result.width, result.height);
+                                ctx.lineWidth = 2;
+                                ctx.strokeStyle = 'red'; // Box color
+                                ctx.stroke();
+
+                                ctx.fillStyle = 'red'; // Text color
+                                ctx.fillText(result.label, result.x, result.y > 10 ? result.y - 5 : 10); // Write the label above the box
+                            });
+
+                            // Update object count in the UI
+                            document.querySelector('.objno').textContent = "Objetos detectados: " + results.length;
+                        });
+                    }
+                }, 100); // Update every 100ms
+            }
+
+            window.openVideoUpload = function () {
+                // Open the video upload modal
+                $('#modal2').modal('open');
+            }
         });
-
-        // Load video and start YOLO detection
-        function loadVideo(event) {
-            const video = document.getElementById('uploaded_video');
-            const file = event.target.files[0];
-            const url = URL.createObjectURL(file);
-            video.src = url;
-
-            video.addEventListener('loadeddata', () => {
-                // Start detection when the video is ready
-                detectObjects(video);
-            });
-        }
-
-        function detectObjects(video) {
-            // Start YOLO detection on each frame
-            video.play();
-            setInterval(() => {
-                if (!video.paused && !video.ended) {
-                    const detections = yolo.detect(video);
-                    detections.then(results => {
-                        // Process results here (e.g., draw boxes)
-                        console.log(results);
-                    });
-                }
-            }, 100); // Update every 100ms
-        }
-
-        function openVideoUpload() {
-            // Open the video upload modal
-            $('#modal2').modal('open');
-        }
     </script>
 
     <script src="/eirodriguezt/assets/YOLO/script_from-video.js"></script>
