@@ -123,7 +123,7 @@
             });
 
             M.toast({
-                html: 'Cargando modelo. Por favor espere..',
+                html: 'Cargando modelo. Por favor espere...',
                 displayLength: Infinity,
                 classes: 'rounded blue'
             });
@@ -156,55 +156,60 @@
             video.src = url;
 
             video.addEventListener('loadeddata', () => {
-                video.play();
-                detectObjects(video, ctx);
+                detectObjects(video, canvas, ctx);
             });
         }
 
-        function detectObjects(video, ctx) {
-            const detectFrame = () => {
-                if (video.paused || video.ended) return;
+        function detectObjects(video, canvas, ctx) {
+            video.play();
 
-                // Detect objects in the video frame
-                yolo.detect(video, (err, results) => {
-                    if (err) {
-                        console.error(err);
-                        return;
-                    }
+            const detectionInterval = setInterval(() => {
+                if (!video.paused && !video.ended) {
+                    // Detect objects in the video frame
+                    yolo.detect(video, (err, results) => {
+                        if (err) {
+                            console.error("Error detectando objetos:", err);
+                            clearInterval(detectionInterval);
+                            return;
+                        }
 
-                    // Clear previous drawings
-                    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+                        // Clear previous drawings
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-                    // Draw the current video frame to the canvas
-                    ctx.drawImage(video, 0, 0, ctx.canvas.width, ctx.canvas.height);
+                        // Draw the current video frame to the canvas
+                        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-                    // Draw bounding boxes and labels for each detected object
-                    if (results && results.length > 0) {
-                        results.forEach(result => {
-                            ctx.beginPath();
-                            ctx.rect(result.x * canvas.width, result.y * canvas.height, result.width * canvas.width, result.height * canvas.height);
-                            ctx.lineWidth = 2;
-                            ctx.strokeStyle = 'red'; // Box color
-                            ctx.stroke();
+                        // Draw bounding boxes and labels for each detected object
+                        if (results) {
+                            results.forEach(result => {
+                                ctx.beginPath();
+                                ctx.rect(
+                                    result.x * canvas.width,
+                                    result.y * canvas.height,
+                                    result.width * canvas.width,
+                                    result.height * canvas.height
+                                );
+                                ctx.lineWidth = 2;
+                                ctx.strokeStyle = 'red'; // Box color
+                                ctx.stroke();
 
-                            ctx.fillStyle = 'red'; // Text color
-                            ctx.font = '14px Arial';
-                            ctx.fillText(
-                                `${result.label} (${(result.confidence * 100).toFixed(2)}%)`,
-                                result.x * canvas.width,
-                                result.y * canvas.height > 10 ? result.y * canvas.height - 5 : 10
-                            );
-                        });
+                                ctx.fillStyle = 'red'; // Text color
+                                ctx.font = '16px Arial';
+                                ctx.fillText(
+                                    `${result.label} (${(result.confidence * 100).toFixed(2)}%)`,
+                                    result.x * canvas.width,
+                                    (result.y * canvas.height) > 10 ? (result.y * canvas.height) - 5 : 10
+                                );
+                            });
 
-                        // Update object count in the UI
-                        document.querySelector('.objno').textContent = "Objetos detectados: " + results.length;
-                    }
-                });
-
-                requestAnimationFrame(detectFrame); // Request the next frame for detection
-            };
-
-            detectFrame(); // Start the detection loop
+                            // Update object count in the UI
+                            document.querySelector('.objno').textContent = "Objetos detectados: " + results.length;
+                        }
+                    });
+                } else {
+                    clearInterval(detectionInterval);
+                }
+            }, 100); // Update every 100ms
         }
 
         function openVideoUpload() {
@@ -212,6 +217,7 @@
             $('#modal2').modal('open');
         }
     </script>
+
 
     <script src="/eirodriguezt/assets/YOLO/script_from-video.js"></script>
     <script src="/eirodriguezt/assets/YOLO/script_real-time.js"></script>
