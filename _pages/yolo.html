@@ -101,7 +101,8 @@
                 <div class="video-preview-container">
                     <video id="uploaded_video" width="640" height="480" controls></video>
                 </div>
-                <div id="frames" class="row"></div>
+                <!-- Canvas for drawing the detection boxes -->
+                <canvas id="outputCanvas" width="640" height="480" style="display: none;"></canvas>
             </div>
         </div>
     </main>
@@ -144,63 +145,61 @@
                 });
                 $('.btn-large').removeClass('disabled');
             }
-
-            // Load video and start YOLO detection
-            window.loadVideo = function (event) {
-                const video = document.getElementById('uploaded_video');
-                const file = event.target.files[0];
-                const url = URL.createObjectURL(file);
-                video.src = url;
-
-                video.addEventListener('loadeddata', () => {
-                    // Start detection when the video is ready
-                    detectObjects(video);
-                });
-            }
-
-            function detectObjects(video) {
-                // Start YOLO detection on each frame
-                video.play();
-                const canvas = document.createElement('canvas'); // Create temporary canvas
-                const ctx = canvas.getContext('2d');
-
-                setInterval(() => {
-                    if (!video.paused && !video.ended) {
-                        // Set canvas dimensions to video frame size
-                        canvas.width = video.videoWidth;
-                        canvas.height = video.videoHeight;
-                        ctx.drawImage(video, 0, 0, canvas.width, canvas.height); // Draw the video frame on the canvas
-
-                        const detections = yolo.detect(canvas); // Use canvas instead of video element
-                        detections.then(results => {
-                            // Clear previous detections
-                            ctx.clearRect(0, 0, canvas.width, canvas.height);
-                            ctx.drawImage(video, 0, 0, canvas.width, canvas.height); // Redraw the video frame
-
-                            results.forEach(result => {
-                                // Draw bounding box and label for each detected object
-                                ctx.beginPath();
-                                ctx.rect(result.x, result.y, result.width, result.height);
-                                ctx.lineWidth = 2;
-                                ctx.strokeStyle = 'red'; // Box color
-                                ctx.stroke();
-
-                                ctx.fillStyle = 'red'; // Text color
-                                ctx.fillText(result.label, result.x, result.y > 10 ? result.y - 5 : 10); // Write the label above the box
-                            });
-
-                            // Update object count in the UI
-                            document.querySelector('.objno').textContent = "Objetos detectados: " + results.length;
-                        });
-                    }
-                }, 100); // Update every 100ms
-            }
-
-            window.openVideoUpload = function () {
-                // Open the video upload modal
-                $('#modal2').modal('open');
-            }
         });
+
+        // Load video and start YOLO detection
+        function loadVideo(event) {
+            const video = document.getElementById('uploaded_video');
+            const file = event.target.files[0];
+            const url = URL.createObjectURL(file);
+            video.src = url;
+
+            video.addEventListener('loadeddata', () => {
+                // Start detection when the video is ready
+                detectObjects(video);
+            });
+        }
+
+        function detectObjects(video) {
+            const canvas = document.getElementById('outputCanvas');
+            const ctx = canvas.getContext('2d');
+
+            video.play();
+            setInterval(() => {
+                if (!video.paused && !video.ended) {
+                    // Draw the current video frame to the canvas
+                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                    // Now we use the canvas as input to YOLO
+                    const detections = yolo.detect(canvas);
+                    detections.then(results => {
+                        // Clear the canvas before drawing new detections
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        ctx.drawImage(video, 0, 0, canvas.width, canvas.height); // Redibujar el video
+
+                        // Draw bounding boxes and labels
+                        results.forEach(result => {
+                            ctx.beginPath();
+                            ctx.rect(result.x, result.y, result.width, result.height);
+                            ctx.lineWidth = 2;
+                            ctx.strokeStyle = 'red'; // Color del cuadro
+                            ctx.stroke();
+
+                            ctx.fillStyle = 'red'; // Color del texto
+                            ctx.fillText(result.label, result.x, result.y > 10 ? result.y - 5 : 10); // Escribir la etiqueta
+                        });
+
+                        // Update object count in the UI
+                        document.querySelector('.objno').textContent = "Objetos detectados: " + results.length;
+                    });
+                }
+            }, 100); // Actualizar cada 100ms
+        }
+
+        function openVideoUpload() {
+            // Open the video upload modal
+            $('#modal2').modal('open');
+        }
     </script>
 
     <script src="/eirodriguezt/assets/YOLO/script_from-video.js"></script>
