@@ -113,9 +113,9 @@
         // Buffer to hold the last 60 closing prices
         let recentData = [];
 
-        // Fetch data from Binance API (Last 240 data points)
+        // Fetch data from Binance API (Last 5999940 data points)
         async function fetchBinanceData() {
-            const url = 'https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1m&limit=5999940'; // Fetch the last 240 data points (4 hours)
+            const url = 'https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1m&limit=5999940'; // Fetch the last 5999940 data points 
             const response = await fetch(url);
             const data = await response.json();
 
@@ -125,9 +125,6 @@
             return { timestamps, closingPrices };
         }
 
-        // Buffer to store predictions for learning phase
-        let predictionBuffer = [];
-
         // Preprocess data and make predictions
         async function updateCharts() {
             const { timestamps, closingPrices } = await fetchBinanceData();
@@ -135,34 +132,31 @@
             // Update the recent data buffer
             recentData = recentData.concat(closingPrices); // Add new data to the buffer
 
-            // Keep only the last 60 values
-            if (recentData.length > 60) {
-                recentData = recentData.slice(-60);
-            }
+            // Process in batches of 60 data points
+            while (recentData.length >= 60) {
+                // Get the next batch of 60 closing prices
+                const batch = recentData.slice(0, 60);
+                recentData = recentData.slice(60); // Remove the processed batch from the buffer
 
-            // Ensure the buffer has exactly 60 values
-            if (recentData.length === 60) {
-                // Prepare input tensor with the last 60 closing prices
-                const inputTensor = tf.tensor(recentData).reshape([1, 60, 1]);
+                // Prepare input tensor with the batch of closing prices
+                const inputTensor = tf.tensor(batch).reshape([1, 60, 1]);
 
-                // Make prediction
+                // Make prediction for the current batch
                 const predictionTensor = model.predict(inputTensor);
                 const prediction = predictionTensor.dataSync()[0];
 
                 // Update the prediction chart with the predictions
-                predictionChart.data.labels.push(timestamps[timestamps.length - 1]);
+                predictionChart.data.labels.push(timestamps[0]);
                 predictionChart.data.datasets[0].data.push(prediction);
                 predictionChart.update();
 
                 // Update the comparison chart (Real vs Prediction)
-                const latestRealValue = closingPrices[closingPrices.length - 1];
+                const latestRealValue = batch[batch.length - 1];
 
-                comparisonChart.data.labels.push(timestamps[timestamps.length - 1]);
+                comparisonChart.data.labels.push(timestamps[0]);
                 comparisonChart.data.datasets[0].data.push(latestRealValue); // Real value (blue)
                 comparisonChart.data.datasets[1].data.push(prediction); // Prediction (red)
                 comparisonChart.update();
-            } else {
-                console.warn('Insufficient data for prediction. Waiting for more data...');
             }
 
             // Limit the charts to the last 100 data points
@@ -177,7 +171,6 @@
                 comparisonChart.data.datasets[1].data.shift();
             }
         }
-
 
         // Fetch the data immediately on page load, and then every minute
         updateCharts(); // Initial data fetch
