@@ -110,9 +110,12 @@
             }
         });
 
+        // Store historical data for training
+        let historicalData = [];
+
         // Fetch data from Binance API (Last 240 data points)
         async function fetchBinanceData() {
-            const url = 'https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1m&limit=2400'; // Fetch the last 240 data points (4 hours)
+            const url = 'https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1m&limit=240'; // Fetch the last 240 data points (4 hours)
             const response = await fetch(url);
             const data = await response.json();
 
@@ -122,16 +125,22 @@
             return { timestamps, closingPrices };
         }
 
-        // Preprocess data and make predictions
+        // Train the model on batches and then make predictions
         async function updateCharts() {
             const { timestamps, closingPrices } = await fetchBinanceData();
+
+            // Accumulate the historical data over time
+            historicalData = historicalData.concat(closingPrices);
 
             // Process the data in batches of 60
             const batchSize = 60;
             const batches = [];
-            for (let i = 0; i <= closingPrices.length - batchSize; i++) {
-                batches.push(closingPrices.slice(i, i + batchSize)); // Create batches of 60
+            for (let i = 0; i <= historicalData.length - batchSize; i++) {
+                batches.push(historicalData.slice(i, i + batchSize)); // Create batches of 60
             }
+
+            // Train the model with new data
+            await trainModel(batches);
 
             // Make predictions for each batch
             const predictions = [];
@@ -166,6 +175,31 @@
                 comparisonChart.data.datasets[0].data.shift();
                 comparisonChart.data.datasets[1].data.shift();
             }
+        }
+
+        // Function to train the model on new batches
+        async function trainModel(batches) {
+            const batchSize = 60;
+            const trainingData = [];
+            const labels = [];
+
+            batches.forEach(batch => {
+                const inputTensor = tf.tensor(batch).reshape([1, batchSize, 1]);
+                const label = batch[batch.length - 1]; // Use the last value as the label for prediction
+                trainingData.push(inputTensor);
+                labels.push(label);
+            });
+
+            // Train the model with the new batches
+            const xs = tf.concat(trainingData);
+            const ys = tf.tensor(labels).reshape([labels.length, 1]);
+
+            await model.fit(xs, ys, {
+                epochs: 1,
+                batchSize: 32
+            });
+
+            console.log('Model trained on new data!');
         }
 
         // Fetch the data immediately on page load, and then every minute
