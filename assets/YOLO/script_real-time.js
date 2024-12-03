@@ -30,9 +30,9 @@ $(document).ready(function () {
     }
 
     // Configuraciones de optimización
-    var videoWidth = 320;
-    var videoHeight = 240;
-    var fpsLimit = 10;
+    const videoWidth = 320;
+    const videoHeight = 240;
+    const fpsLimit = 10;
 
     // Ajustar la selección del canvas
     var videoCanvas = document.querySelector("#realTimeCanvas");
@@ -45,11 +45,15 @@ $(document).ready(function () {
     // Declarar la variable global lastDetectionTime
     var lastDetectionTime = 0;  // Inicializar a 0
 
+    let yolo_rt;
+    let intervalId;
+
     // Definir la función showWebcam en el ámbito global
     window.showWebcam = function () {
         $('#modal1').modal('open');
         const video = document.querySelector("#webcam_feed");
         let intervalId;
+        let yolo_rt; // yolo_rt se declara aquí
 
         if (navigator.mediaDevices.getUserMedia) {
             navigator.mediaDevices.getUserMedia({ video: { width: videoWidth, height: videoHeight } })
@@ -85,39 +89,30 @@ $(document).ready(function () {
     };
 
 
+    function detectWithYOLO() {
+        if (yolo_rt) { // Verifica si yolo_rt esta inicializado
+            const video = document.querySelector("#webcam_feed");
+            if (video.videoWidth > 0 && video.videoHeight > 0) {
+                rtCtx.drawImage(video, 0, 0, videoCanvas.width, videoCanvas.height);
+                yolo_rt.detect(video, gotResults);
+            }
+        }
+    }
 
-
-    // Función para detección en tiempo real
-    function realTimeYOLO() {
-        const video = document.querySelector("#webcam_feed");
-        if (video.videoWidth === 0 || video.videoHeight === 0 || !yolo_rt) { // Agregar verificación de yolo_rt
-            console.error("Dimensiones de video inválidas. O Yolo RT no sirve");
+    function gotResults(err, results) {
+        if (err) {
+            console.error(err);
             return;
         }
-
-        // Dibujar el frame actual
+        rtCtx.clearRect(0, 0, videoCanvas.width, videoCanvas.height);
         rtCtx.drawImage(video, 0, 0, videoCanvas.width, videoCanvas.height);
-
-        yolo_rt.detect(video, (err, results) => {
-            if (err) {
-                console.error(err);
-                return;
-            }
-
-            // Dibujar detecciones
-            results.forEach(result => {
-                const x = result.x * videoCanvas.width;
-                const y = result.y * videoCanvas.height;
-                const w = result.w * videoCanvas.width;
-                const h = result.h * videoCanvas.height;
-                const lbl = result.className + ' (' + Math.round(result.classProb * 100) + '%)';
-                drawRectangle(rtCtx, y, x, w, h, lbl);
-            });
-
-            // Actualizar UI
-            $('.objno').text('Objetos detectados: ' + results.length);
+        results.forEach(result => {
+            // ... código para dibujar los rectángulos ...
         });
+        $('.objno').text('Objetos detectados: ' + results.length);
     }
+
+
     function drawRectangle(ctx, y, x, w, h, lbl) {
         ctx.beginPath();
         ctx.rect(x, y, w, h);
