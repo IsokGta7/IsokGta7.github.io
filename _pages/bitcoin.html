@@ -126,39 +126,46 @@
         async function updateCharts() {
             const { timestamps, closingPrices } = await fetchBinanceData();
 
-            // Ensure the sequence length is at least 240
-            const inputClosingPrices = closingPrices.slice(-240); // Get last 240 closing prices
-
-            // Process batches of 60 data points
-            let predictions = [];
-            for (let i = 0; i <= inputClosingPrices.length - 60; i += 60) {
-                const batch = inputClosingPrices.slice(i, i + 60); // Batch of 60 closing prices
-
-                // Predict the next closing price
-                const inputTensor = tf.tensor(batch).reshape([1, 60, 1]); // Reshape input to match model's expected shape
-                const predictionTensor = model.predict(inputTensor);
-                const prediction = predictionTensor.dataSync()[0]; // Get the predicted value
-
-                // Store the predicted price and corresponding timestamp for the chart
-                predictions.push({ timestamp: timestamps[i + 60], prediction });
+            // Process the data in batches of 60
+            const batchSize = 60;
+            const batches = [];
+            for (let i = 0; i <= closingPrices.length - batchSize; i++) {
+                batches.push(closingPrices.slice(i, i + batchSize)); // Create batches of 60
             }
 
-            // Update the prediction chart with all predictions
-            predictions.forEach(pred => {
-                predictionChart.data.labels.push(pred.timestamp);
-                predictionChart.data.datasets[0].data.push(pred.prediction);
+            // Make predictions for each batch
+            const predictions = [];
+            batches.forEach(batch => {
+                const inputTensor = tf.tensor(batch).reshape([1, batchSize, 1]);
+                const predictionTensor = model.predict(inputTensor);
+                const prediction = predictionTensor.dataSync()[0];
+                predictions.push(prediction);
             });
+
+            // Update the prediction chart with the predictions from all batches
+            predictionChart.data.labels = timestamps.slice(0, predictions.length); // Update labels with the time range of predictions
+            predictionChart.data.datasets[0].data = predictions;
             predictionChart.update();
 
-            // Update the comparison chart for the last batch
-            const lastBatch = inputClosingPrices.slice(-60);
-            const lastRealValue = closingPrices[closingPrices.length - 1]; // Actual last value
-            const lastPrediction = predictions[predictions.length - 1].prediction;
+            // For the comparison chart, just take the most recent 60 data points for comparison
+            const latestRealValue = closingPrices[closingPrices.length - 1];
 
             comparisonChart.data.labels.push(timestamps[timestamps.length - 1]);
-            comparisonChart.data.datasets[0].data.push(lastRealValue); // Real value (blue)
-            comparisonChart.data.datasets[1].data.push(lastPrediction); // Prediction (red)
+            comparisonChart.data.datasets[0].data.push(latestRealValue); // Real value (blue)
+            comparisonChart.data.datasets[1].data.push(predictions[predictions.length - 1]); // Prediction (red)
             comparisonChart.update();
+
+            // Limit the charts to the last 100 data points
+            if (predictionChart.data.labels.length > 100) {
+                predictionChart.data.labels.shift();
+                predictionChart.data.datasets[0].data.shift();
+            }
+
+            if (comparisonChart.data.labels.length > 100) {
+                comparisonChart.data.labels.shift();
+                comparisonChart.data.datasets[0].data.shift();
+                comparisonChart.data.datasets[1].data.shift();
+            }
         }
 
         // Update the charts every minute
