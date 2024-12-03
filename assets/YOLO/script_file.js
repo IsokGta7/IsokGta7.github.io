@@ -26,7 +26,8 @@ $(document).ready(function () {
         $('.btn-large').removeClass('disabled');
     }
 
-    function openVideoUpload() {
+    // Definición de la función openVideoUpload
+    window.openVideoUpload = function () {
         $('#modal2').modal('open');
     }
 

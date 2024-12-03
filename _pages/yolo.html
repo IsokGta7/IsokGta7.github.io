@@ -16,6 +16,8 @@
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
     <script src="https://unpkg.com/ml5@0.1.2/dist/ml5.min.js" type="text/javascript"></script>
+
+    <!-- Scripts -->
     <script src="/eirodriguezt/assets/YOLO/script_file.js"></script>
 </head>
 
@@ -37,9 +39,7 @@
             <div class="row">
                 <div class="col s12 center-align">
                     <h1 class="header">Detección de Objetos YOLO</h1>
-                    <p class="flow-text grey-text text-darken-1">
-                        Seleccione una opción para comenzar la detección
-                    </p>
+                    <p class="flow-text grey-text text-darken-1">Seleccione una opción para comenzar la detección</p>
                 </div>
             </div>
 
@@ -48,13 +48,11 @@
                 <div class="col s12">
                     <button data-target="modal2" class="btn-large waves-effect waves-light purple" style="margin: 5px;"
                         onclick="openVideoUpload()">
-                        <i class="material-icons left">video_library</i>
-                        Desde Video
+                        <i class="material-icons left">video_library</i> Desde Video
                     </button>
                     <button data-target="modal1" onclick="showWebcam()" class="btn-large waves-effect waves-light blue"
                         style="margin: 5px;">
-                        <i class="material-icons left">videocam</i>
-                        Tiempo Real
+                        <i class="material-icons left">videocam</i> Tiempo Real
                     </button>
                 </div>
             </div>
@@ -71,13 +69,8 @@
                     <i onclick="doLoop=false" class="material-icons red-text">close</i>
                 </a>
             </div>
-            <div class="box">
-                <span class="box_label"></span>
-            </div>
             <div class="modal-content">
-                <!-- Video feed -->
                 <video id="webcam_feed" autoplay></video>
-                <!-- Canvas to draw bounding boxes for real-time feed -->
                 <canvas id="realTimeCanvas" width="320" height="240"></canvas>
             </div>
         </div>
@@ -96,7 +89,7 @@
                 <div class="file-field input-field">
                     <div class="btn blue">
                         <span>Archivo</span>
-                        <input type="file" class="upload" accept="video/*" id="videoInput" onchange="loadVideo(event)">
+                        <input type="file" class="upload" accept="video/*" id="videoInput">
                     </div>
                     <div class="file-path-wrapper">
                         <input class="file-path validate" type="text" placeholder="Subir video">
@@ -106,7 +99,6 @@
                     <video id="uploaded_video" width="640" height="480" controls></video>
                 </div>
                 <div class="video-preview-container">
-                    <!-- Canvas for drawing detection boxes from uploaded video -->
                     <canvas id="videoCanvas" width="640" height="480"></canvas>
                 </div>
             </div>
@@ -116,15 +108,10 @@
     <!-- Footer -->
     <footer class="page-footer">
         <div class="footer-copyright">
-            <div class="container center-align">
-                © 2024 YOLO Object Detection
-            </div>
+            <div class="container center-align">© 2024 YOLO Object Detection</div>
         </div>
     </footer>
 
-    <!-- Scripts -->
-
-    <!--<script src="/eirodriguezt/assets/YOLO/script_from-video.js"></script>-->
     <script src="/eirodriguezt/assets/YOLO/script_real-time.js"></script>
 </body>
 
