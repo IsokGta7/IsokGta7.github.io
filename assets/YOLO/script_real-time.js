@@ -71,11 +71,11 @@ $(document).ready(function () {
         console.log('Dimensiones del video en detectWithYOLO: ', video.videoWidth, video.videoHeight);
 
         if (yolo_rt) {
-            if (video.videoWidth > 0 && video.videoHeight > 0) {
+            if (video.videoWidth > 0 && video.videoHeight > 0 && yolo_rt.modelReady) {
                 rtCtx.drawImage(video, 0, 0, videoCanvas.width, videoCanvas.height);
                 yolo_rt.detect(video, gotResults);
             } else {
-                console.warn("El tamaño del video es inválido: ", video.videoWidth, video.videoHeight);
+                console.warn("El video no está listo o sus dimensiones son inválidas.");
             }
         }
     }
@@ -86,18 +86,23 @@ $(document).ready(function () {
             return;
         }
 
-        // Debug: Verificar si los resultados están llegando correctamente
+        // Debug: Verificar el tipo de 'results'
         console.log('Resultados de YOLO: ', results);
 
-        rtCtx.clearRect(0, 0, videoCanvas.width, videoCanvas.height);
-        rtCtx.drawImage(video, 0, 0, videoCanvas.width, videoCanvas.height);
+        // Asegurarnos de que 'results' sea un array
+        if (Array.isArray(results)) {
+            rtCtx.clearRect(0, 0, videoCanvas.width, videoCanvas.height);
+            rtCtx.drawImage(video, 0, 0, videoCanvas.width, videoCanvas.height);
 
-        // Dibujar las cajas de los objetos detectados
-        results.forEach(result => {
-            drawRectangle(rtCtx, result.y * videoCanvas.height, result.x * videoCanvas.width, result.w * videoCanvas.width, result.h * videoCanvas.height, result.className + ' (' + Math.round(result.classProb * 100) + '%)');
-        });
+            // Dibujar las cajas de los objetos detectados
+            results.forEach(result => {
+                drawRectangle(rtCtx, result.y * videoCanvas.height, result.x * videoCanvas.width, result.w * videoCanvas.width, result.h * videoCanvas.height, result.className + ' (' + Math.round(result.classProb * 100) + '%)');
+            });
 
-        $('.objno').text('Objetos detectados: ' + results.length);
+            $('.objno').text('Objetos detectados: ' + results.length);
+        } else {
+            console.error("Los resultados de YOLO no son un array. Verifica la salida de YOLO.");
+        }
     }
 
     function drawRectangle(ctx, y, x, w, h, lbl) {
