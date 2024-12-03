@@ -39,6 +39,9 @@ $(document).ready(function () {
     }
     var rtCtx = videoCanvas.getContext("2d");
 
+    // Declarar la variable global lastDetectionTime
+    var lastDetectionTime = 0;  // Inicializar a 0
+
     // Definir la función showWebcam en el ámbito global
     window.showWebcam = function () {
         $('#modal1').modal('open');
@@ -54,8 +57,8 @@ $(document).ready(function () {
                         yolo_rt = ml5.YOLO(video, realTimeYOLO);
                     });
                 })
-                .catch(function (err0r) {
-                    console.error("Error al acceder a la cámara: ", err0r);
+                .catch(function (err) {
+                    console.error("Error al acceder a la cámara: ", err);
                 });
         }
     };
