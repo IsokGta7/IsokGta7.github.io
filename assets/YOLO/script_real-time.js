@@ -30,7 +30,7 @@ $(document).ready(function () {
     window.showWebcam = function () {
         $('#modal1').modal('open');
         const video = document.querySelector("#webcam_feed");
-        const outputCanvas = document.getElementById('videoCanvas');
+        const outputCanvas = document.getElementById('realTimeCanvas');
         const ctx = outputCanvas.getContext('2d');
 
         if (navigator.mediaDevices.getUserMedia) {
