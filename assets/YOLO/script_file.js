@@ -1,19 +1,19 @@
 $(document).ready(function () {
     $('.modal').modal({
-        dismissible: false
+        dismissible: false,
     });
 
     M.toast({
         html: 'Cargando modelo. Por favor espere...',
         displayLength: Infinity,
-        classes: 'rounded blue'
+        classes: 'rounded blue',
     });
 
     // Inicializar YOLO
     window.yolo = ml5.YOLO(modelLoaded, {
         filterBoxesThreshold: 0.01,
         IOUThreshold: 0.01,
-        classProbThreshold: 0.5
+        classProbThreshold: 0.5,
     });
 
     function modelLoaded() {
@@ -21,9 +21,13 @@ $(document).ready(function () {
         M.toast({
             html: 'Modelo cargado exitosamente',
             displayLength: 1000,
-            classes: 'rounded green'
+            classes: 'rounded green',
         });
         $('.btn-large').removeClass('disabled');
+    }
+
+    function openVideoUpload() {
+        $('#modal2').modal('open');
     }
 
     // Evento de carga de archivo de video
@@ -59,10 +63,13 @@ $(document).ready(function () {
                     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
                     // Dibujar resultados
-                    results.forEach(result => {
-                        if (result.x !== undefined && result.y !== undefined &&
-                            result.w !== undefined && result.h !== undefined) {
-
+                    results.forEach((result) => {
+                        if (
+                            result.x !== undefined &&
+                            result.y !== undefined &&
+                            result.w !== undefined &&
+                            result.h !== undefined
+                        ) {
                             // Transformar coordenadas proporcionales a pixeles
                             const x = result.x * canvas.width;
                             const y = result.y * canvas.height;
@@ -77,7 +84,11 @@ $(document).ready(function () {
 
                             const label = result.className || 'Desconocido';
                             ctx.fillStyle = 'green';
-                            ctx.fillText(`${label} (${(result.classProb * 100).toFixed(2)}%)`, x, y > 10 ? y - 5 : 10);
+                            ctx.fillText(
+                                `${label} (${(result.classProb * 100).toFixed(2)}%)`,
+                                x,
+                                y > 10 ? y - 5 : 10
+                            );
                         }
                     });
 
@@ -86,10 +97,6 @@ $(document).ready(function () {
                 });
             }
         }, 100); // Actualizar cada 100ms
-    }
-
-    function openVideoUpload() {
-        $('#modal2').modal('open');
     }
 
     // Proceso de extracción de frames y detección
@@ -101,7 +108,7 @@ $(document).ready(function () {
         const video = document.createElement('video');
         video.height = 400;
         video.width = video.height * 1.774;
-        video.crossOrigin = "Anonymous";
+        video.crossOrigin = 'Anonymous';
 
         video.addEventListener('loadeddata', () => {
             if (!isNaN(video.duration)) {
@@ -135,20 +142,27 @@ $(document).ready(function () {
     function startDetecting() {
         if (i < allFrames.length) {
             yolo.detect(getImg(allFrames[i]), (err, results) => {
-                const ctx = allFrames[i].getContext("2d");
+                const ctx = allFrames[i].getContext('2d');
 
-                results.forEach(result => {
-                    ctx.font = "13px Arial";
-                    ctx.fillText(`${result.className} (${Math.round(result.classProb * 100)}%)`,
-                        result.x * allFrames[i].width, result.y * allFrames[i].height - 2);
-                    ctx.rect(result.x * allFrames[i].width, result.y * allFrames[i].height,
-                        result.w * allFrames[i].width, result.h * allFrames[i].height);
+                results.forEach((result) => {
+                    ctx.font = '13px Arial';
+                    ctx.fillText(
+                        `${result.className} (${Math.round(result.classProb * 100)}%)`,
+                        result.x * allFrames[i].width,
+                        result.y * allFrames[i].height - 2
+                    );
+                    ctx.rect(
+                        result.x * allFrames[i].width,
+                        result.y * allFrames[i].height,
+                        result.w * allFrames[i].width,
+                        result.h * allFrames[i].height
+                    );
                 });
 
                 ctx.stroke();
                 allOutput.push(results);
 
-                $('#progress').css('width', `${i / (allFrames.length - 1) * window.innerWidth}px`);
+                $('#progress').css('width', `${(i / (allFrames.length - 1)) * window.innerWidth}px`);
                 $('#frames').append(allFrames[i]);
 
                 i++;
@@ -164,7 +178,7 @@ $(document).ready(function () {
         const img = new Image();
         img.width = canvas.width;
         img.height = canvas.height;
-        img.src = canvas.toDataURL("image/png");
+        img.src = canvas.toDataURL('image/png');
         return img;
     }
 });
