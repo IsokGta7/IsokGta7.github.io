@@ -146,14 +146,14 @@
                 const prediction = predictionTensor.dataSync()[0];
 
                 // Update the prediction chart with the predictions
-                predictionChart.data.labels.push(timestamps[0]);
+                predictionChart.data.labels.push(timestamps[0]); // Use the first timestamp of the batch
                 predictionChart.data.datasets[0].data.push(prediction);
                 predictionChart.update();
 
                 // Update the comparison chart (Real vs Prediction)
                 const latestRealValue = batch[batch.length - 1];
 
-                comparisonChart.data.labels.push(timestamps[0]);
+                comparisonChart.data.labels.push(timestamps[0]); // Use the first timestamp of the batch
                 comparisonChart.data.datasets[0].data.push(latestRealValue); // Real value (blue)
                 comparisonChart.data.datasets[1].data.push(prediction); // Prediction (red)
                 comparisonChart.update();
