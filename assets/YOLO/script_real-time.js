@@ -1,4 +1,3 @@
-
 $(document).ready(function () {
     $('.modal').modal({ dismissible: false });
 
@@ -17,12 +16,15 @@ $(document).ready(function () {
     const videoCanvas = document.querySelector("#realTimeCanvas");
     const rtCtx = videoCanvas.getContext("2d");
 
+    // Variables globales para acceso en todo el script
+    let video;
+    let yolo_rt;
+
     // Función para mostrar la cámara web
     window.showWebcam = function () {
         $('#modal1').modal('open');
-        const video = document.querySelector("#webcam_feed");
+        video = document.querySelector("#webcam_feed");
         let intervalId;
-        let yolo_rt;
 
         if (navigator.mediaDevices.getUserMedia) {
             navigator.mediaDevices.getUserMedia({ video: { width: videoWidth, height: videoHeight } })
@@ -63,17 +65,14 @@ $(document).ready(function () {
         }
     };
 
-
     function detectWithYOLO() {
         if (yolo_rt) {
-            const video = document.querySelector("#webcam_feed");
             if (video.videoWidth > 0 && video.videoHeight > 0) {
                 rtCtx.drawImage(video, 0, 0, videoCanvas.width, videoCanvas.height);
                 yolo_rt.detect(video, gotResults);
             }
         }
     }
-
 
     function gotResults(err, results) {
         if (err) {
@@ -87,7 +86,6 @@ $(document).ready(function () {
         });
         $('.objno').text('Objetos detectados: ' + results.length);
     }
-
 
     function drawRectangle(ctx, y, x, w, h, lbl) {
         ctx.beginPath();
