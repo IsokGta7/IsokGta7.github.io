@@ -15,7 +15,7 @@ $(document).ready(function () {
     let video;
     let yolo_rt;
 
-    const fpsLimit = 30;
+    const fpsLimit = 30; // Limitar a 30 fps
 
     // Función para mostrar la cámara web
     window.showWebcam = function () {
@@ -35,7 +35,7 @@ $(document).ready(function () {
                             videoCanvas.height = video.videoHeight;
                             video.play();
                             yolo_rt = ml5.YOLO(video, gotResults);
-                            intervalId = setInterval(detectWithYOLO, 1000 / fpsLimit);
+                            intervalId = setInterval(detectWithYOLO, 1000 / fpsLimit); // Captura de frames en intervalos
                             M.Toast.dismissAll();
                             M.toast({ html: 'Modelo cargado exitosamente', displayLength: 1000, classes: 'rounded green' });
                             $('.btn-large').removeClass('disabled');
@@ -73,8 +73,10 @@ $(document).ready(function () {
         if (yolo_rt) {
             if (video.videoWidth > 0 && video.videoHeight > 0 && yolo_rt.modelReady) {
                 rtCtx.clearRect(0, 0, videoCanvas.width, videoCanvas.height); // Limpiar el canvas antes de dibujar
-                rtCtx.drawImage(video, 0, 0, videoCanvas.width, videoCanvas.height);
-                yolo_rt.detect(video, gotResults);
+                rtCtx.drawImage(video, 0, 0, videoCanvas.width, videoCanvas.height); // Extraer un frame
+                // Usamos el canvas con el frame extraído para el procesamiento
+                const frameImage = videoCanvas.toDataURL("image/jpeg"); // Convertir el frame a una imagen en base64
+                yolo_rt.detect(frameImage, gotResults); // Enviar el frame extraído a YOLO
             } else {
                 console.warn("El video no está listo o sus dimensiones son inválidas.");
             }
