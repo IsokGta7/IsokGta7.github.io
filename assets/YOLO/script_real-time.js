@@ -31,11 +31,8 @@ $(document).ready(function () {
                 .then(function (stream) {
                     video.srcObject = stream;
                     video.onloadedmetadata = function () {
+                        console.log('Video cargado: ', video.videoWidth, video.videoHeight); // Debug: Verificar dimensiones
                         if (video.videoWidth > 0 && video.videoHeight > 0) {
-                            // Ajustar el tamaño del canvas para que coincida con el video
-                            videoCanvas.width = video.videoWidth;
-                            videoCanvas.height = video.videoHeight;
-
                             video.play();
                             yolo_rt = ml5.YOLO(video, gotResults);
                             intervalId = setInterval(detectWithYOLO, 1000 / fpsLimit);
@@ -70,10 +67,15 @@ $(document).ready(function () {
     };
 
     function detectWithYOLO() {
+        // Debug: Verificar el tamaño del video
+        console.log('Dimensiones del video en detectWithYOLO: ', video.videoWidth, video.videoHeight);
+
         if (yolo_rt) {
             if (video.videoWidth > 0 && video.videoHeight > 0) {
                 rtCtx.drawImage(video, 0, 0, videoCanvas.width, videoCanvas.height);
                 yolo_rt.detect(video, gotResults);
+            } else {
+                console.warn("El tamaño del video es inválido: ", video.videoWidth, video.videoHeight);
             }
         }
     }
@@ -83,19 +85,18 @@ $(document).ready(function () {
             console.error(err);
             return;
         }
+
+        // Debug: Verificar si los resultados están llegando correctamente
+        console.log('Resultados de YOLO: ', results);
+
         rtCtx.clearRect(0, 0, videoCanvas.width, videoCanvas.height);
         rtCtx.drawImage(video, 0, 0, videoCanvas.width, videoCanvas.height);
 
+        // Dibujar las cajas de los objetos detectados
         results.forEach(result => {
-            // Ajustar la posición y tamaño de la caja en base al tamaño del canvas
-            const x = result.x * videoCanvas.width;
-            const y = result.y * videoCanvas.height;
-            const w = result.w * videoCanvas.width;
-            const h = result.h * videoCanvas.height;
-
-            // Dibujar el rectángulo
-            drawRectangle(rtCtx, y, x, w, h, result.className + ' (' + Math.round(result.classProb * 100) + '%)');
+            drawRectangle(rtCtx, result.y * videoCanvas.height, result.x * videoCanvas.width, result.w * videoCanvas.width, result.h * videoCanvas.height, result.className + ' (' + Math.round(result.classProb * 100) + '%)');
         });
+
         $('.objno').text('Objetos detectados: ' + results.length);
     }
 
