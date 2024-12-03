@@ -31,7 +31,7 @@ $(document).ready(function () {
 // Load video and start YOLO detection
 function loadVideo(event) {
     const video = document.getElementById('uploaded_video');
-    const outputCanvas = document.getElementById('outputCanvas'); // Canvas específico para video cargado
+    const outputCanvas = document.getElementById('videoCanvas'); // Canvas específico para video cargado
     const ctx = outputCanvas.getContext('2d');
     const file = event.target.files[0];
     const url = URL.createObjectURL(file);
