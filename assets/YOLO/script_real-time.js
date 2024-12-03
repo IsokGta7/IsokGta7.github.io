@@ -1,61 +1,53 @@
 $(document).ready(function () {
-    $('.modal').modal({ dismissible: false });
+    $('.modal').modal({
+        dismissible: false,
+    });
 
     M.toast({
-        html: 'Cargando modelo...',
+        html: 'Cargando modelo. Por favor espere...',
         displayLength: Infinity,
         classes: 'rounded blue',
     });
 
-    // Canvas para la visualización
-    const videoCanvas = document.querySelector("#realTimeCanvas");
-    const rtCtx = videoCanvas.getContext("2d");
+    // Inicializar YOLO
+    window.yolo = ml5.YOLO(modelLoaded, {
+        filterBoxesThreshold: 0.01,
+        IOUThreshold: 0.01,
+        classProbThreshold: 0.5,
+    });
 
-    // Variables globales para acceso en todo el script
-    let video;
-    let yolo_rt;
+    function modelLoaded() {
+        M.Toast.dismissAll();
+        M.toast({
+            html: 'Modelo cargado exitosamente',
+            displayLength: 1000,
+            classes: 'rounded green',
+        });
+        $('.btn-large').removeClass('disabled');
+    }
 
-    const fpsLimit = 30; // Limitar a 30 fps
-
-    // Función para mostrar la cámara web
+    // Mostrar cámara web
     window.showWebcam = function () {
         $('#modal1').modal('open');
-        video = document.querySelector("#webcam_feed");
-        let intervalId;
+        const video = document.querySelector("#webcam_feed");
+        const outputCanvas = document.getElementById('videoCanvas');
+        const ctx = outputCanvas.getContext('2d');
 
         if (navigator.mediaDevices.getUserMedia) {
             navigator.mediaDevices.getUserMedia({ video: true })
                 .then(function (stream) {
                     video.srcObject = stream;
                     video.onloadedmetadata = function () {
-                        console.log('Video cargado: ', video.videoWidth, video.videoHeight); // Debug: Verificar dimensiones
-                        if (video.videoWidth > 0 && video.videoHeight > 0) {
-                            // Ajustar el tamaño del lienzo según el tamaño real del video
-                            videoCanvas.width = video.videoWidth;
-                            videoCanvas.height = video.videoHeight;
-                            video.play();
-                            yolo_rt = ml5.YOLO(video, gotResults);
-                            intervalId = setInterval(detectWithYOLO, 1000 / fpsLimit); // Captura de frames en intervalos
-                            M.Toast.dismissAll();
-                            M.toast({ html: 'Modelo cargado exitosamente', displayLength: 1000, classes: 'rounded green' });
-                            $('.btn-large').removeClass('disabled');
-                        } else {
-                            console.error("Error: Dimensiones del video inválidas después de loadedmetadata.");
-                            clearInterval(intervalId);
-                            M.Toast.dismissAll();
-                            M.toast({ html: 'Error al iniciar la cámara', displayLength: 3000, classes: 'rounded red' });
-                        }
-                    };
-                    video.onerror = function (error) {
-                        console.error("Error al cargar el video de la webcam:", error);
-                        clearInterval(intervalId);
-                        M.Toast.dismissAll();
-                        M.toast({ html: 'Error al acceder a la cámara', displayLength: 3000, classes: 'rounded red' });
+                        video.play();
+                        video.width = video.videoWidth;
+                        video.height = video.videoHeight;
+                        outputCanvas.width = video.width;
+                        outputCanvas.height = video.height;
+                        detectWithYOLO(video, ctx, outputCanvas);
                     };
                 })
                 .catch(function (err) {
                     console.error("Error al acceder a la cámara: ", err);
-                    clearInterval(intervalId);
                     M.Toast.dismissAll();
                     M.toast({ html: 'Error al acceder a la cámara', displayLength: 3000, classes: 'rounded red' });
                 });
@@ -66,53 +58,54 @@ $(document).ready(function () {
         }
     };
 
-    function detectWithYOLO() {
-        // Debug: Verificar el tamaño del video
-        console.log('Dimensiones del video en detectWithYOLO: ', video.videoWidth, video.videoHeight);
+    function detectWithYOLO(video, ctx, canvas) {
+        setInterval(() => {
+            if (!video.paused && !video.ended) {
+                // Detectar objetos en los frames de la cámara
+                yolo.detect(video, (err, results) => {
+                    if (err) {
+                        console.error(err);
+                        return;
+                    }
 
-        if (yolo_rt) {
-            if (video.videoWidth > 0 && video.videoHeight > 0 && yolo_rt.modelReady) {
-                rtCtx.clearRect(0, 0, videoCanvas.width, videoCanvas.height); // Limpiar el canvas antes de dibujar
-                rtCtx.drawImage(video, 0, 0, videoCanvas.width, videoCanvas.height); // Extraer un frame
-                // Usamos el canvas con el frame extraído para el procesamiento
-                const frameImage = videoCanvas.toDataURL("image/jpeg"); // Convertir el frame a una imagen en base64
-                yolo_rt.detect(frameImage, gotResults); // Enviar el frame extraído a YOLO
-            } else {
-                console.warn("El video no está listo o sus dimensiones son inválidas.");
+                    // Limpiar el canvas
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                    // Dibujar resultados
+                    results.forEach((result) => {
+                        if (
+                            result.x !== undefined &&
+                            result.y !== undefined &&
+                            result.w !== undefined &&
+                            result.h !== undefined
+                        ) {
+                            // Transformar coordenadas proporcionales a pixeles
+                            const x = result.x * canvas.width;
+                            const y = result.y * canvas.height;
+                            const width = result.w * canvas.width;
+                            const height = result.h * canvas.height;
+
+                            ctx.beginPath();
+                            ctx.rect(x, y, width, height);
+                            ctx.lineWidth = 2;
+                            ctx.strokeStyle = 'blue';
+                            ctx.stroke();
+
+                            const label = result.className || 'Desconocido';
+                            ctx.fillStyle = 'green';
+                            ctx.fillText(
+                                `${label} (${(result.classProb * 100).toFixed(2)}%)`,
+                                x,
+                                y > 10 ? y - 5 : 10
+                            );
+                        }
+                    });
+
+                    // Actualizar el número de objetos detectados
+                    $('.objno').text(`Objetos detectados: ${results.length}`);
+                });
             }
-        }
-    }
-
-    function gotResults(err, results) {
-        if (err) {
-            console.error(err);
-            return;
-        }
-
-        // Debug: Verificar el tipo de 'results'
-        console.log('Resultados de YOLO: ', results);
-
-        // Asegurarnos de que 'results' sea un array
-        if (Array.isArray(results)) {
-            // Dibujar las cajas de los objetos detectados
-            results.forEach(result => {
-                drawRectangle(rtCtx, result.y * videoCanvas.height, result.x * videoCanvas.width, result.w * videoCanvas.width, result.h * videoCanvas.height, result.className + ' (' + Math.round(result.classProb * 100) + '%)');
-            });
-
-            $('.objno').text('Objetos detectados: ' + results.length);
-        } else {
-            console.error("Los resultados de YOLO no son un array. Verifica la salida de YOLO.");
-        }
-    }
-
-    function drawRectangle(ctx, y, x, w, h, lbl) {
-        ctx.beginPath();
-        ctx.rect(x, y, w, h);
-        ctx.lineWidth = 2;
-        ctx.strokeStyle = 'blue';
-        ctx.stroke();
-        ctx.font = '16px Arial';
-        ctx.fillStyle = 'green';
-        ctx.fillText(lbl, x, y > 20 ? y - 10 : 20);
+        }, 100); // Actualizar cada 100ms
     }
 });
