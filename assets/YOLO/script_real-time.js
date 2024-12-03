@@ -47,7 +47,7 @@ $(document).ready(function () {
     // Variables globales
     var yolo_rt;
     var lastDetectionTime = 0;
-    var videoCanvas = document.querySelector("#videoCanvas");
+    var videoCanvas = document.querySelector("#realTimeCanvas");
     var rtCtx = videoCanvas.getContext("2d");
 
     // Definir la función showWebcam en el ámbito global
