@@ -115,7 +115,7 @@
 
         // Fetch data from Binance API (Last 240 data points)
         async function fetchBinanceData() {
-            const url = 'https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1m&limit=240'; // Fetch the last 240 data points (4 hours)
+            const url = 'https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1m&limit=2400'; // Fetch the last 240 data points (4 hours)
             const response = await fetch(url);
             const data = await response.json();
 
@@ -125,48 +125,59 @@
             return { timestamps, closingPrices };
         }
 
+        // Buffer to store predictions for learning phase
+        let predictionBuffer = [];
+
         // Preprocess data and make predictions
         async function updateCharts() {
             const { timestamps, closingPrices } = await fetchBinanceData();
 
-            // Update the recent data buffer
-            recentData = recentData.concat(closingPrices); // Add new data to the buffer
+            // Add new data to the buffer
+            recentData = recentData.concat(closingPrices);
 
             // Keep only the last 60 values
             if (recentData.length > 60) {
                 recentData = recentData.slice(-60);
             }
 
-            // Prepare input tensor with the last 60 closing prices
-            const inputTensor = tf.tensor(recentData).reshape([1, 60, 1]);
-
-            // Make prediction
-            const predictionTensor = model.predict(inputTensor);
-            const prediction = predictionTensor.dataSync()[0];
-
-            // Update the prediction chart with the predictions
-            predictionChart.data.labels.push(timestamps[timestamps.length - 1]);
-            predictionChart.data.datasets[0].data.push(prediction);
-            predictionChart.update();
-
-            // Update the comparison chart (Real vs Prediction)
-            const latestRealValue = closingPrices[closingPrices.length - 1];
-
-            comparisonChart.data.labels.push(timestamps[timestamps.length - 1]);
-            comparisonChart.data.datasets[0].data.push(latestRealValue); // Real value (blue)
-            comparisonChart.data.datasets[1].data.push(prediction); // Prediction (red)
-            comparisonChart.update();
-
-            // Limit the charts to the last 100 data points
-            if (predictionChart.data.labels.length > 100) {
-                predictionChart.data.labels.shift();
-                predictionChart.data.datasets[0].data.shift();
+            // If we don't have enough data to predict yet, just keep learning
+            if (recentData.length < 60) {
+                return; // Wait until we have 60 data points
             }
 
+            // Simulate a "learning" phase where we grab 60 batches and make predictions
+            for (let i = 0; i < 60; i++) {
+                const batch = recentData.slice(i, i + 1); // Grab 1 batch of 60 at a time
+                const inputTensor = tf.tensor(batch).reshape([1, 60, 1]);
+
+                const predictionTensor = model.predict(inputTensor);
+                const prediction = predictionTensor.dataSync()[0];
+
+                // Store the predictions in a buffer
+                predictionBuffer.push({ timestamp: timestamps[i], realValue: closingPrices[i], predictedValue: prediction });
+
+                // Graph the real vs predicted value
+                comparisonChart.data.labels.push(timestamps[i]);
+                comparisonChart.data.datasets[0].data.push(closingPrices[i]); // Real value (blue)
+                comparisonChart.data.datasets[1].data.push(prediction); // Prediction (red)
+            }
+
+            // Update the prediction chart with the final predictions
+            predictionChart.data.labels.push(timestamps[59]);
+            predictionChart.data.datasets[0].data.push(predictionBuffer[predictionBuffer.length - 1].predictedValue);
+            predictionChart.update();
+
+            // Clean up the comparison chart to keep it within 100 points
             if (comparisonChart.data.labels.length > 100) {
                 comparisonChart.data.labels.shift();
                 comparisonChart.data.datasets[0].data.shift();
                 comparisonChart.data.datasets[1].data.shift();
+            }
+
+            // Clean up the prediction chart to keep it within 100 points
+            if (predictionChart.data.labels.length > 100) {
+                predictionChart.data.labels.shift();
+                predictionChart.data.datasets[0].data.shift();
             }
         }
 
