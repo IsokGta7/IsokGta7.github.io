@@ -46,13 +46,6 @@
         tf.loadLayersModel('/eirodriguezt/assets/bitcoin/model_btc.json').then(loadedModel => {
             model = loadedModel;
             console.log('Model loaded successfully!');
-
-            // Compile the model after loading it
-            model.compile({
-                optimizer: 'adam',  // Or use a different optimizer if needed
-                loss: 'meanSquaredError',  // This is commonly used for regression tasks
-                metrics: ['mae']  // Optionally, you can add metrics like Mean Absolute Error
-            });
         });
 
         // Set up Chart.js for Prediction
@@ -117,8 +110,8 @@
             }
         });
 
-        // Store historical data for training
-        let historicalData = [];
+        // Buffer to hold the last 60 closing prices
+        let recentData = [];
 
         // Fetch data from Binance API (Last 240 data points)
         async function fetchBinanceData() {
@@ -132,43 +125,36 @@
             return { timestamps, closingPrices };
         }
 
-        // Train the model on batches and then make predictions
+        // Preprocess data and make predictions
         async function updateCharts() {
             const { timestamps, closingPrices } = await fetchBinanceData();
 
-            // Accumulate the historical data over time
-            historicalData = historicalData.concat(closingPrices);
+            // Update the recent data buffer
+            recentData = recentData.concat(closingPrices); // Add new data to the buffer
 
-            // Process the data in batches of 60
-            const batchSize = 60;
-            const batches = [];
-            for (let i = 0; i <= historicalData.length - batchSize; i++) {
-                batches.push(historicalData.slice(i, i + batchSize)); // Create batches of 60
+            // Keep only the last 60 values
+            if (recentData.length > 60) {
+                recentData = recentData.slice(-60);
             }
 
-            // Train the model with new data
-            await trainModel(batches);
+            // Prepare input tensor with the last 60 closing prices
+            const inputTensor = tf.tensor(recentData).reshape([1, 60, 1]);
 
-            // Make predictions for each batch
-            const predictions = [];
-            batches.forEach(batch => {
-                const inputTensor = tf.tensor(batch).reshape([1, batchSize, 1]);
-                const predictionTensor = model.predict(inputTensor);
-                const prediction = predictionTensor.dataSync()[0];
-                predictions.push(prediction);
-            });
+            // Make prediction
+            const predictionTensor = model.predict(inputTensor);
+            const prediction = predictionTensor.dataSync()[0];
 
-            // Update the prediction chart with the predictions from all batches
-            predictionChart.data.labels = timestamps.slice(0, predictions.length); // Update labels with the time range of predictions
-            predictionChart.data.datasets[0].data = predictions;
+            // Update the prediction chart with the predictions
+            predictionChart.data.labels.push(timestamps[timestamps.length - 1]);
+            predictionChart.data.datasets[0].data.push(prediction);
             predictionChart.update();
 
-            // For the comparison chart, just take the most recent 60 data points for comparison
+            // Update the comparison chart (Real vs Prediction)
             const latestRealValue = closingPrices[closingPrices.length - 1];
 
             comparisonChart.data.labels.push(timestamps[timestamps.length - 1]);
             comparisonChart.data.datasets[0].data.push(latestRealValue); // Real value (blue)
-            comparisonChart.data.datasets[1].data.push(predictions[predictions.length - 1]); // Prediction (red)
+            comparisonChart.data.datasets[1].data.push(prediction); // Prediction (red)
             comparisonChart.update();
 
             // Limit the charts to the last 100 data points
@@ -182,31 +168,6 @@
                 comparisonChart.data.datasets[0].data.shift();
                 comparisonChart.data.datasets[1].data.shift();
             }
-        }
-
-        // Function to train the model on new batches
-        async function trainModel(batches) {
-            const batchSize = 60;
-            const trainingData = [];
-            const labels = [];
-
-            batches.forEach(batch => {
-                const inputTensor = tf.tensor(batch).reshape([1, batchSize, 1]);
-                const label = batch[batch.length - 1]; // Use the last value as the label for prediction
-                trainingData.push(inputTensor);
-                labels.push(label);
-            });
-
-            // Train the model with the new batches
-            const xs = tf.concat(trainingData);
-            const ys = tf.tensor(labels).reshape([labels.length, 1]);
-
-            await model.fit(xs, ys, {
-                epochs: 1,
-                batchSize: 32
-            });
-
-            console.log('Model trained on new data!');
         }
 
         // Fetch the data immediately on page load, and then every minute
