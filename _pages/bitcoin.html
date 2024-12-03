@@ -22,13 +22,21 @@
     </header>
 
     <main>
+        <!-- First Chart: Prediction -->
         <div class="chart-container">
+            <h2>Prediction Chart</h2>
             <canvas id="predictionChart" width="400" height="200"></canvas>
+        </div>
+
+        <!-- Second Chart: Real vs Predicted Comparison -->
+        <div class="chart-container">
+            <h2>Real vs Predicted Comparison</h2>
+            <canvas id="comparisonChart" width="400" height="200"></canvas>
         </div>
     </main>
 
     <footer>
-        <p>&copy; Prediccion de BTC. Ezequiel Isaac Rodriguez Tenorio.</p>
+        <p>&copy; Predicción de BTC. Ezequiel Isaac Rodriguez Tenorio.</p>
     </footer>
 
     <script>
@@ -40,9 +48,37 @@
             console.log('Model loaded successfully!');
         });
 
-        // Set up Chart.js
-        const ctx = document.getElementById('predictionChart').getContext('2d');
-        const chart = new Chart(ctx, {
+        // Set up Chart.js for Prediction
+        const predictionCtx = document.getElementById('predictionChart').getContext('2d');
+        const predictionChart = new Chart(predictionCtx, {
+            type: 'line',
+            data: {
+                labels: [], // Timestamps
+                datasets: [
+                    {
+                        label: 'Prediction',
+                        data: [],
+                        borderColor: 'red',
+                        fill: false
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    x: {
+                        type: 'time',
+                        time: {
+                            unit: 'minute'
+                        }
+                    }
+                }
+            }
+        });
+
+        // Set up Chart.js for Comparison
+        const comparisonCtx = document.getElementById('comparisonChart').getContext('2d');
+        const comparisonChart = new Chart(comparisonCtx, {
             type: 'line',
             data: {
                 labels: [], // Timestamps
@@ -54,9 +90,9 @@
                         fill: false
                     },
                     {
-                        label: 'Prediction',
+                        label: 'API Data',
                         data: [],
-                        borderColor: 'red',
+                        borderColor: 'green',
                         fill: false
                     }
                 ]
@@ -87,7 +123,7 @@
         }
 
         // Preprocess data and make predictions
-        async function updateChart() {
+        async function updateCharts() {
             const { timestamps, closingPrices } = await fetchBinanceData();
 
             // Ensure the sequence length is 240 (4 hours of data)
@@ -98,26 +134,34 @@
             const predictionTensor = model.predict(inputTensor);
             const prediction = predictionTensor.dataSync()[0]; // Get the predicted value
 
-            // Update the chart with the latest data point
-            const latestTimestamp = timestamps[timestamps.length - 1];
+            // Update the prediction chart
+            predictionChart.data.labels.push(timestamps[timestamps.length - 1]);
+            predictionChart.data.datasets[0].data.push(prediction);
+            predictionChart.update();
+
+            // Update the comparison chart
             const latestRealValue = closingPrices[closingPrices.length - 1];
 
-            chart.data.labels.push(latestTimestamp); // Add the timestamp
-            chart.data.datasets[0].data.push(latestRealValue); // Real value
-            chart.data.datasets[1].data.push(prediction); // Prediction
+            comparisonChart.data.labels.push(timestamps[timestamps.length - 1]);
+            comparisonChart.data.datasets[0].data.push(latestRealValue); // Real value (blue)
+            comparisonChart.data.datasets[1].data.push(prediction); // Prediction (red)
+            comparisonChart.update();
 
-            chart.update();
+            // Limit the charts to the last 100 data points
+            if (predictionChart.data.labels.length > 100) {
+                predictionChart.data.labels.shift();
+                predictionChart.data.datasets[0].data.shift();
+            }
 
-            // Limit the chart to the last 100 data points
-            if (chart.data.labels.length > 100) {
-                chart.data.labels.shift();
-                chart.data.datasets[0].data.shift();
-                chart.data.datasets[1].data.shift();
+            if (comparisonChart.data.labels.length > 100) {
+                comparisonChart.data.labels.shift();
+                comparisonChart.data.datasets[0].data.shift();
+                comparisonChart.data.datasets[1].data.shift();
             }
         }
 
-        // Update the chart every minute
-        setInterval(updateChart, 60000); // Fetch new data every minute
+        // Update the charts every minute
+        setInterval(updateCharts, 60000); // Fetch new data every minute
     </script>
 </body>
 
