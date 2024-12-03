@@ -7,11 +7,6 @@ $(document).ready(function () {
         classes: 'rounded blue',
     });
 
-    // Configuraciones de optimización
-    const videoWidth = 1920;
-    const videoHeight = 1080;
-    const fpsLimit = 30; // Ajusta este valor para controlar la frecuencia de frames
-
     // Canvas para la visualización
     const videoCanvas = document.querySelector("#realTimeCanvas");
     const rtCtx = videoCanvas.getContext("2d");
@@ -27,12 +22,15 @@ $(document).ready(function () {
         let intervalId;
 
         if (navigator.mediaDevices.getUserMedia) {
-            navigator.mediaDevices.getUserMedia({ video: { width: videoWidth, height: videoHeight } })
+            navigator.mediaDevices.getUserMedia({ video: true })
                 .then(function (stream) {
                     video.srcObject = stream;
                     video.onloadedmetadata = function () {
                         console.log('Video cargado: ', video.videoWidth, video.videoHeight); // Debug: Verificar dimensiones
                         if (video.videoWidth > 0 && video.videoHeight > 0) {
+                            // Ajustar el tamaño del lienzo según el tamaño real del video
+                            videoCanvas.width = video.videoWidth;
+                            videoCanvas.height = video.videoHeight;
                             video.play();
                             yolo_rt = ml5.YOLO(video, gotResults);
                             intervalId = setInterval(detectWithYOLO, 1000 / fpsLimit);
@@ -72,6 +70,7 @@ $(document).ready(function () {
 
         if (yolo_rt) {
             if (video.videoWidth > 0 && video.videoHeight > 0 && yolo_rt.modelReady) {
+                rtCtx.clearRect(0, 0, videoCanvas.width, videoCanvas.height); // Limpiar el canvas antes de dibujar
                 rtCtx.drawImage(video, 0, 0, videoCanvas.width, videoCanvas.height);
                 yolo_rt.detect(video, gotResults);
             } else {
@@ -91,9 +90,6 @@ $(document).ready(function () {
 
         // Asegurarnos de que 'results' sea un array
         if (Array.isArray(results)) {
-            rtCtx.clearRect(0, 0, videoCanvas.width, videoCanvas.height);
-            rtCtx.drawImage(video, 0, 0, videoCanvas.width, videoCanvas.height);
-
             // Dibujar las cajas de los objetos detectados
             results.forEach(result => {
                 drawRectangle(rtCtx, result.y * videoCanvas.height, result.x * videoCanvas.width, result.w * videoCanvas.width, result.h * videoCanvas.height, result.className + ' (' + Math.round(result.classProb * 100) + '%)');
