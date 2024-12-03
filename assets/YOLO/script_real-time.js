@@ -71,7 +71,7 @@ $(document).ready(function () {
         }
     };
 
-    // Función para detección en tiempo real
+
     function realTimeYOLO() {
         var video = document.querySelector("#webcam_feed");
 
@@ -87,9 +87,10 @@ $(document).ready(function () {
         if (video.videoWidth === 0 || video.videoHeight === 0) {
             console.error("El video no tiene dimensiones válidas.");
             requestAnimationFrame(realTimeYOLO);
-            return;
+            return; // Salir si las dimensiones son inválidas
         }
 
+        // Comenzar la detección
         yolo_rt.detect(video, function (err, results) {
             if (err) {
                 console.error(err);
@@ -116,5 +117,6 @@ $(document).ready(function () {
             requestAnimationFrame(realTimeYOLO);
         });
     }
+
 
 });
