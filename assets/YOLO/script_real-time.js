@@ -32,6 +32,10 @@ $(document).ready(function () {
                     video.srcObject = stream;
                     video.onloadedmetadata = function () {
                         if (video.videoWidth > 0 && video.videoHeight > 0) {
+                            // Ajustar el tamaño del canvas para que coincida con el video
+                            videoCanvas.width = video.videoWidth;
+                            videoCanvas.height = video.videoHeight;
+
                             video.play();
                             yolo_rt = ml5.YOLO(video, gotResults);
                             intervalId = setInterval(detectWithYOLO, 1000 / fpsLimit);
@@ -81,8 +85,16 @@ $(document).ready(function () {
         }
         rtCtx.clearRect(0, 0, videoCanvas.width, videoCanvas.height);
         rtCtx.drawImage(video, 0, 0, videoCanvas.width, videoCanvas.height);
+
         results.forEach(result => {
-            drawRectangle(rtCtx, result.y * videoCanvas.height, result.x * videoCanvas.width, result.w * videoCanvas.width, result.h * videoCanvas.height, result.className + ' (' + Math.round(result.classProb * 100) + '%)');
+            // Ajustar la posición y tamaño de la caja en base al tamaño del canvas
+            const x = result.x * videoCanvas.width;
+            const y = result.y * videoCanvas.height;
+            const w = result.w * videoCanvas.width;
+            const h = result.h * videoCanvas.height;
+
+            // Dibujar el rectángulo
+            drawRectangle(rtCtx, y, x, w, h, result.className + ' (' + Math.round(result.classProb * 100) + '%)');
         });
         $('.objno').text('Objetos detectados: ' + results.length);
     }
