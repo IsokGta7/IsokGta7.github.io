@@ -168,9 +168,11 @@
             }
         }
 
-        // Update the charts every minute
+        // Fetch the data immediately on page load, and then every minute
+        updateCharts(); // Initial data fetch
         setInterval(updateCharts, 60000); // Fetch new data every minute
     </script>
+
 </body>
 
 </html>
