@@ -115,7 +115,7 @@
 
         // Fetch data from Binance API (Last 240 data points)
         async function fetchBinanceData() {
-            const url = 'https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1m&limit=240'; // Fetch the last 240 data points (4 hours)
+            const url = 'https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1m&limit=5999940'; // Fetch the last 240 data points (4 hours)
             const response = await fetch(url);
             const data = await response.json();
 
