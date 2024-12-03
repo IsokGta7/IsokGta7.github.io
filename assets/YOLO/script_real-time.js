@@ -1,5 +1,4 @@
 $(document).ready(function () {
-
     $('.modal').modal({
         dismissible: false,
     });
@@ -32,28 +31,18 @@ $(document).ready(function () {
     var videoHeight = 240;
     var fpsLimit = 10;
 
-    // Función para dibujar el rectángulo en el canvas
-    function drawRectangle(ctx, y, x, w, h, lbl) {
-        ctx.beginPath();
-        ctx.rect(x, y, w, h);
-        ctx.lineWidth = 3;
-        ctx.strokeStyle = 'red';
-        ctx.stroke();
-        ctx.font = '16px Arial';
-        ctx.fillStyle = 'red';
-        ctx.fillText(lbl, x, y > 10 ? y - 5 : 10);
+    // Ajustar la selección del canvas
+    var videoCanvas = document.querySelector("#realTimeCanvas");
+    if (!videoCanvas) {
+        console.error("El canvas con ID 'realTimeCanvas' no se encontró.");
+        return; // Salir si el canvas no está disponible
     }
-
-    // Variables globales
-    var yolo_rt;
-    var lastDetectionTime = 0;
-    var videoCanvas = document.querySelector("realTimeCanvas");
     var rtCtx = videoCanvas.getContext("2d");
 
     // Definir la función showWebcam en el ámbito global
     window.showWebcam = function () {
         $('#modal1').modal('open');
-        var video = document.querySelector("#webcam_feed");
+        var video = document.querySelector("webcam_feed");
 
         if (navigator.mediaDevices.getUserMedia) {
             navigator.mediaDevices.getUserMedia({ video: { width: videoWidth, height: videoHeight } })
@@ -71,9 +60,9 @@ $(document).ready(function () {
         }
     };
 
-
+    // Función para detección en tiempo real
     function realTimeYOLO() {
-        var video = document.querySelector("#webcam_feed");
+        var video = document.querySelector("webcam_feed");
 
         // Limitar la frecuencia de detección
         var currentTime = (new Date()).getTime();
@@ -87,7 +76,7 @@ $(document).ready(function () {
         if (video.videoWidth === 0 || video.videoHeight === 0) {
             console.error("El video no tiene dimensiones válidas.");
             requestAnimationFrame(realTimeYOLO);
-            return; // Salir si las dimensiones son inválidas
+            return;
         }
 
         // Comenzar la detección
@@ -97,7 +86,7 @@ $(document).ready(function () {
                 return;
             }
 
-            // Limpiar canvas de detección en tiempo real
+            // Limpiar el canvas de detección en tiempo real
             rtCtx.clearRect(0, 0, videoCanvas.width, videoCanvas.height);
             rtCtx.drawImage(video, 0, 0, videoCanvas.width, videoCanvas.height);
 
@@ -117,6 +106,4 @@ $(document).ready(function () {
             requestAnimationFrame(realTimeYOLO);
         });
     }
-
-
 });
