@@ -16,6 +16,8 @@ $(document).ready(function () {
         classProbThreshold: 0.5,
     });
 
+    var yolo_rt; // Declaración global de yolo_rt
+
     function modelLoaded() {
         M.Toast.dismissAll();
         M.toast({
@@ -23,6 +25,7 @@ $(document).ready(function () {
             displayLength: 1000,
             classes: 'rounded green',
         });
+        yolo_rt = ml5.YOLO(video, realTimeYOLO); // Asignación de yolo_rt
         $('.btn-large').removeClass('disabled');
     }
 
@@ -78,6 +81,8 @@ $(document).ready(function () {
             M.toast({ html: 'Error: Navegador no soportado', displayLength: 3000, classes: 'rounded red' });
         }
     };
+
+
 
 
     // Función para detección en tiempo real
