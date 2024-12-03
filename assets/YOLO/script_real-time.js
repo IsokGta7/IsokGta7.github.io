@@ -8,9 +8,9 @@ $(document).ready(function () {
     });
 
     // Configuraciones de optimización
-    const videoWidth = 320;
-    const videoHeight = 240;
-    const fpsLimit = 10; // Ajusta este valor para controlar la frecuencia de frames
+    const videoWidth = 1920;
+    const videoHeight = 1080;
+    const fpsLimit = 30; // Ajusta este valor para controlar la frecuencia de frames
 
     // Canvas para la visualización
     const videoCanvas = document.querySelector("#realTimeCanvas");
