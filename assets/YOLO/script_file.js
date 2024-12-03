@@ -97,7 +97,7 @@ $(document).ready(function () {
                     $('.objno').text(`Objetos detectados: ${results.length}`);
                 });
             }
-        }, 100); // Actualizar cada 100ms
+        }, 10); // Actualizar cada 100ms
     }
 
     // Proceso de extracción de frames y detección
