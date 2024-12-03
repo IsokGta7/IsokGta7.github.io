@@ -42,7 +42,7 @@ $(document).ready(function () {
     // Definir la función showWebcam en el ámbito global
     window.showWebcam = function () {
         $('#modal1').modal('open');
-        var video = document.querySelector("webcam_feed");
+        var video = document.querySelector("#webcam_feed");
 
         if (navigator.mediaDevices.getUserMedia) {
             navigator.mediaDevices.getUserMedia({ video: { width: videoWidth, height: videoHeight } })
@@ -62,7 +62,7 @@ $(document).ready(function () {
 
     // Función para detección en tiempo real
     function realTimeYOLO() {
-        var video = document.querySelector("webcam_feed");
+        var video = document.querySelector("#webcam_feed");
 
         // Limitar la frecuencia de detección
         var currentTime = (new Date()).getTime();
