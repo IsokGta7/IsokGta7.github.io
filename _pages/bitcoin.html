@@ -90,9 +90,9 @@
                         fill: false
                     },
                     {
-                        label: 'API Data',
+                        label: 'Prediction',
                         data: [],
-                        borderColor: 'green',
+                        borderColor: 'red',
                         fill: false
                     }
                 ]
@@ -110,9 +110,9 @@
             }
         });
 
-        // Fetch data from Binance API (Last 240 minutes)
+        // Fetch data from Binance API (Last 240 data points)
         async function fetchBinanceData() {
-            const url = 'https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1m&limit=60'; // Fetch the last 60 data points (4 hours)
+            const url = 'https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1m&limit=240'; // Fetch the last 240 data points (4 hours)
             const response = await fetch(url);
             const data = await response.json();
 
@@ -126,40 +126,40 @@
         async function updateCharts() {
             const { timestamps, closingPrices } = await fetchBinanceData();
 
-            // Ensure the sequence length is 60 (last 60 data points)
-            const inputClosingPrices = closingPrices.slice(-60); // Take the last 60 closing prices
+            // Ensure the sequence length is at least 240
+            const inputClosingPrices = closingPrices.slice(-240); // Get last 240 closing prices
 
-            // Predict the next closing price
-            const inputTensor = tf.tensor(inputClosingPrices).reshape([1, 60, 1]); // Reshape input to match model's expected shape
-            const predictionTensor = model.predict(inputTensor);
-            const prediction = predictionTensor.dataSync()[0]; // Get the predicted value
+            // Process batches of 60 data points
+            let predictions = [];
+            for (let i = 0; i <= inputClosingPrices.length - 60; i += 60) {
+                const batch = inputClosingPrices.slice(i, i + 60); // Batch of 60 closing prices
 
-            // Update the prediction chart
-            predictionChart.data.labels.push(timestamps[timestamps.length - 1]);
-            predictionChart.data.datasets[0].data.push(prediction);
+                // Predict the next closing price
+                const inputTensor = tf.tensor(batch).reshape([1, 60, 1]); // Reshape input to match model's expected shape
+                const predictionTensor = model.predict(inputTensor);
+                const prediction = predictionTensor.dataSync()[0]; // Get the predicted value
+
+                // Store the predicted price and corresponding timestamp for the chart
+                predictions.push({ timestamp: timestamps[i + 60], prediction });
+            }
+
+            // Update the prediction chart with all predictions
+            predictions.forEach(pred => {
+                predictionChart.data.labels.push(pred.timestamp);
+                predictionChart.data.datasets[0].data.push(pred.prediction);
+            });
             predictionChart.update();
 
-            // Update the comparison chart
-            const latestRealValue = closingPrices[closingPrices.length - 1];
+            // Update the comparison chart for the last batch
+            const lastBatch = inputClosingPrices.slice(-60);
+            const lastRealValue = closingPrices[closingPrices.length - 1]; // Actual last value
+            const lastPrediction = predictions[predictions.length - 1].prediction;
 
             comparisonChart.data.labels.push(timestamps[timestamps.length - 1]);
-            comparisonChart.data.datasets[0].data.push(latestRealValue); // Real value (blue)
-            comparisonChart.data.datasets[1].data.push(prediction); // Prediction (red)
+            comparisonChart.data.datasets[0].data.push(lastRealValue); // Real value (blue)
+            comparisonChart.data.datasets[1].data.push(lastPrediction); // Prediction (red)
             comparisonChart.update();
-
-            // Limit the charts to the last 100 data points
-            if (predictionChart.data.labels.length > 100) {
-                predictionChart.data.labels.shift();
-                predictionChart.data.datasets[0].data.shift();
-            }
-
-            if (comparisonChart.data.labels.length > 100) {
-                comparisonChart.data.labels.shift();
-                comparisonChart.data.datasets[0].data.shift();
-                comparisonChart.data.datasets[1].data.shift();
-            }
         }
-
 
         // Update the charts every minute
         setInterval(updateCharts, 60000); // Fetch new data every minute
