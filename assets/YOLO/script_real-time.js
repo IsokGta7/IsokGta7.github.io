@@ -15,6 +15,8 @@ $(document).ready(function () {
     let video;
     let yolo_rt;
 
+    const fpsLimit = 30;
+
     // Función para mostrar la cámara web
     window.showWebcam = function () {
         $('#modal1').modal('open');
