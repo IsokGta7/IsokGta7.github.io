@@ -25,8 +25,9 @@ var time_start;
 var time_end;
 var doLoop = true;
 var lastDetectionTime = 0; // Para limitar la frecuencia de detección
-var canvas = document.querySelector("#videoCanvas");
-var ctx = canvas.getContext("2d");
+var videoCanvas = document.querySelector("#videoCanvas");
+var rtCtx = videoCanvas.getContext("2d");
+
 
 // Función para mostrar la webcam
 function showWebcam() {
@@ -57,44 +58,43 @@ function drawVideoOnCanvas() {
 }
 
 // Función para detección en tiempo real
+// Función para detección en tiempo real
 function realTimeYOLO() {
+    var video = document.querySelector("#webcam_feed");
+
     // Limitar la frecuencia de detección
     var currentTime = (new Date()).getTime();
     if (currentTime - lastDetectionTime < 1000 / fpsLimit) {
-        requestAnimationFrame(realTimeYOLO); // Esperar al siguiente ciclo de renderizado
+        requestAnimationFrame(realTimeYOLO);
         return;
     }
     lastDetectionTime = currentTime;
 
-    time_start = currentTime;
-    yolo_rt.detect(function (err, results) {
-        time_end = (new Date()).getTime();
-        var width = $("#webcam_feed").width();
-        var height = $("#webcam_feed").height();
-        $('.cl' + iter).remove();
-        iter++;
-        $('.time').text('Processing time: ' + Number(time_end - time_start).toString() + 'ms');
-        $('.objno').text('Objects detected: ' + results.length);
-
-        // Limpiar el canvas antes de dibujar el nuevo frame
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        // Dibujar el video en el canvas
-        drawVideoOnCanvas();
-
-        // Dibujar los rectángulos y las etiquetas sobre el canvas
-        for (var i = 0; i < results.length; i++) {
-            var lbl = results[i].className + ' (' + Math.round(results[i].classProb * 100) + '%)';
-            var y = results[i].y * height;
-            var x = results[i].x * width;
-            var w = results[i].w * width;
-            var h = results[i].h * height;
-
-            drawRectangle(ctx, y, x, w, h, lbl);  // Dibuja sobre el canvas
+    yolo_rt.detect(video, function (err, results) {
+        if (err) {
+            console.error(err);
+            return;
         }
 
+        // Limpiar canvas de detección en tiempo real
+        rtCtx.clearRect(0, 0, videoCanvas.width, videoCanvas.height);
+        rtCtx.drawImage(video, 0, 0, videoCanvas.width, videoCanvas.height);
+
+        // Dibujar detecciones en tiempo real
+        results.forEach(result => {
+            var x = result.x * videoCanvas.width;
+            var y = result.y * videoCanvas.height;
+            var w = result.w * videoCanvas.width;
+            var h = result.h * videoCanvas.height;
+            var lbl = result.className + ' (' + Math.round(result.classProb * 100) + '%)';
+            drawRectangle(rtCtx, y, x, w, h, lbl);
+        });
+
+        // Actualizar UI
+        $('.objno').text('Objects detected: ' + results.length);
         if (doLoop) {
-            requestAnimationFrame(realTimeYOLO);  // Usar requestAnimationFrame para optimizar el rendimiento
+            requestAnimationFrame(realTimeYOLO);
         }
     });
 }
+

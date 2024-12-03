@@ -76,8 +76,8 @@
             <div class="modal-content">
                 <!-- Video feed -->
                 <video id="webcam_feed" autoplay></video>
-                <!-- Canvas to draw bounding boxes -->
-                <canvas id="outputCanvas" width="320" height="240"></canvas>
+                <!-- Canvas to draw bounding boxes for real-time feed -->
+                <canvas id="realTimeCanvas" width="320" height="240"></canvas>
             </div>
         </div>
 
@@ -104,8 +104,8 @@
                 <div class="video-preview-container">
                     <video id="uploaded_video" width="640" height="480" controls></video>
                 </div>
-                <!-- Canvas for drawing the detection boxes -->
-                <canvas id="outputCanvas" width="640" height="480"></canvas>
+                <!-- Canvas for drawing detection boxes from uploaded video -->
+                <canvas id="videoCanvas" width="640" height="480"></canvas>
             </div>
         </div>
     </main>

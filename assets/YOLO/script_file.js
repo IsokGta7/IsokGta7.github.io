@@ -31,17 +31,17 @@ $(document).ready(function () {
 // Load video and start YOLO detection
 function loadVideo(event) {
     const video = document.getElementById('uploaded_video');
-    const canvas = document.getElementById('outputCanvas'); // Obtén el canvas aquí
-    const ctx = canvas.getContext('2d');
+    const outputCanvas = document.getElementById('outputCanvas'); // Canvas específico para video cargado
+    const ctx = outputCanvas.getContext('2d');
     const file = event.target.files[0];
     const url = URL.createObjectURL(file);
     video.src = url;
 
     video.addEventListener('loadeddata', () => {
-        // Start detection when the video is ready
-        detectObjects(video, ctx, canvas);  // Pasa canvas también
+        detectObjects(video, ctx, outputCanvas);
     });
 }
+
 
 function detectObjects(video, ctx, canvas) {
     video.play();
