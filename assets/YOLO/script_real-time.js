@@ -28,9 +28,9 @@ $(document).ready(function () {
     }
 
     // Configuraciones de optimización
-    var videoWidth = 320; // Resolución reducida para dispositivos móviles
+    var videoWidth = 320;
     var videoHeight = 240;
-    var fpsLimit = 10; // Limitar los FPS a 10 (100 ms entre cada iteración)
+    var fpsLimit = 10;
 
     // Función para dibujar el rectángulo en el canvas
     function drawRectangle(ctx, y, x, w, h, lbl) {
@@ -39,8 +39,6 @@ $(document).ready(function () {
         ctx.lineWidth = 3;
         ctx.strokeStyle = 'red';
         ctx.stroke();
-
-        // Escribir la etiqueta
         ctx.font = '16px Arial';
         ctx.fillStyle = 'red';
         ctx.fillText(lbl, x, y > 10 ? y - 5 : 10);
@@ -48,17 +46,13 @@ $(document).ready(function () {
 
     // Variables globales
     var yolo_rt;
-    var lastDetectionTime = 0; // Para limitar la frecuencia de detección
+    var lastDetectionTime = 0;
     var videoCanvas = document.querySelector("#videoCanvas");
     var rtCtx = videoCanvas.getContext("2d");
 
-    // Función para mostrar la webcam
-    function showWebcam() {
-
-
+    // Definir la función showWebcam en el ámbito global
+    window.showWebcam = function () {
         $('#modal1').modal('open');
-
-
         var video = document.querySelector("#webcam_feed");
 
         if (navigator.mediaDevices.getUserMedia) {
@@ -75,7 +69,7 @@ $(document).ready(function () {
                     console.error("Error al acceder a la cámara: ", err0r);
                 });
         }
-    }
+    };
 
     // Función para detección en tiempo real
     function realTimeYOLO() {
