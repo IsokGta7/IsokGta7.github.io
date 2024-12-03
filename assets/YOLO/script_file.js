@@ -32,7 +32,7 @@ $(document).ready(function () {
     function loadVideo(event) {
         const video = document.getElementById('uploaded_video');
         const outputCanvas = document.getElementById('videoCanvas');
-        const ctx = outputCanvas.getContext('2d');
+        //const ctx = outputCanvas.getContext('2d');
         const file = event.target.files[0];
         const url = URL.createObjectURL(file);
         video.src = url;
