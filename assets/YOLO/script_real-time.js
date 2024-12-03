@@ -46,6 +46,7 @@ $(document).ready(function () {
     window.showWebcam = function () {
         $('#modal1').modal('open');
         const video = document.querySelector("#webcam_feed");
+        let intervalId;
 
         if (navigator.mediaDevices.getUserMedia) {
             navigator.mediaDevices.getUserMedia({ video: { width: videoWidth, height: videoHeight } })
@@ -54,7 +55,8 @@ $(document).ready(function () {
                     video.onloadedmetadata = function () {
                         if (video.videoWidth > 0 && video.videoHeight > 0) {
                             video.play();
-                            yolo_rt = ml5.YOLO(video, realTimeYOLO);
+                            // Iniciar la detección con setInterval
+                            intervalId = setInterval(realTimeYOLO, 1000 / fpsLimit); // 1000 / fpsLimit ms entre cada frame
                         } else {
                             console.error("Error: Dimensiones del video inválidas después de loadedmetadata.");
                         }
@@ -78,51 +80,48 @@ $(document).ready(function () {
     };
 
 
-
     // Función para detección en tiempo real
     function realTimeYOLO() {
-        var video = document.querySelector("#webcam_feed");
-
-        // Limitar la frecuencia de detección
-        var currentTime = (new Date()).getTime();
-        if (currentTime - lastDetectionTime < 1000 / fpsLimit) {
-            requestAnimationFrame(realTimeYOLO);
-            return;
-        }
-        lastDetectionTime = currentTime;
-
-        // Comprobar que el video tiene dimensiones válidas
+        const video = document.querySelector("#webcam_feed");
         if (video.videoWidth === 0 || video.videoHeight === 0) {
-            console.error("El video no tiene dimensiones válidas.");
-            requestAnimationFrame(realTimeYOLO);
+            console.error("Dimensiones de video inválidas.");
             return;
         }
 
-        // Comenzar la detección
-        yolo_rt.detect(video, function (err, results) {
+        // Dibujar el frame actual
+        rtCtx.drawImage(video, 0, 0, videoCanvas.width, videoCanvas.height);
+
+        yolo_rt.detect(video, (err, results) => {
             if (err) {
                 console.error(err);
                 return;
             }
 
-            // Limpiar el canvas de detección en tiempo real
-            rtCtx.clearRect(0, 0, videoCanvas.width, videoCanvas.height);
-            rtCtx.drawImage(video, 0, 0, videoCanvas.width, videoCanvas.height);
-
-            // Dibujar detecciones en tiempo real
+            // Dibujar detecciones
             results.forEach(result => {
-                var x = result.x * videoCanvas.width;
-                var y = result.y * videoCanvas.height;
-                var w = result.w * videoCanvas.width;
-                var h = result.h * videoCanvas.height;
-                var lbl = result.className + ' (' + Math.round(result.classProb * 100) + '%)';
+                const x = result.x * videoCanvas.width;
+                const y = result.y * videoCanvas.height;
+                const w = result.w * videoCanvas.width;
+                const h = result.h * videoCanvas.height;
+                const lbl = result.className + ' (' + Math.round(result.classProb * 100) + '%)';
                 drawRectangle(rtCtx, y, x, w, h, lbl);
             });
 
             // Actualizar UI
             $('.objno').text('Objetos detectados: ' + results.length);
-
-            requestAnimationFrame(realTimeYOLO);
         });
     }
-});
+    function drawRectangle(ctx, y, x, w, h, lbl) {
+        ctx.beginPath();
+        ctx.rect(x, y, w, h);
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = 'blue';
+        ctx.stroke();
+
+        ctx.font = '16px Arial';
+        ctx.fillStyle = 'green';
+        ctx.fillText(lbl, x, y > 10 ? y - 5 : 10);
+    }
+
+}
+);
