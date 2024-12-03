@@ -58,6 +58,8 @@ $(document).ready(function () {
                     video.onloadedmetadata = function () {
                         if (video.videoWidth > 0 && video.videoHeight > 0) {
                             video.play();
+                            // Inicializar yolo_rt después de que el video esté cargado
+                            yolo_rt = ml5.YOLO(video, realTimeYOLO);
                             // Iniciar la detección con setInterval
                             intervalId = setInterval(realTimeYOLO, 1000 / fpsLimit); // 1000 / fpsLimit ms entre cada frame
                         } else {
@@ -88,8 +90,8 @@ $(document).ready(function () {
     // Función para detección en tiempo real
     function realTimeYOLO() {
         const video = document.querySelector("#webcam_feed");
-        if (video.videoWidth === 0 || video.videoHeight === 0) {
-            console.error("Dimensiones de video inválidas.");
+        if (video.videoWidth === 0 || video.videoHeight === 0 || !yolo_rt) { // Agregar verificación de yolo_rt
+            console.error("Dimensiones de video inválidas. O Yolo RT no sirve");
             return;
         }
 
