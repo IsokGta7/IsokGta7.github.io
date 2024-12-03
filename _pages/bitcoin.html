@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BTC/USDT Predictions</title>
+    <link rel="stylesheet" href="/eirodriguezt/styles/style.css"> <!-- Link to external stylesheet -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+</head>
+
+<body>
+    <header>
+        <nav>
+            <ul>
+                <li><a href="/eirodriguezt/index.html">Inicio</a></li>
+            </ul>
+        </nav>
+        <h1>BTC/USDT Predictions</h1>
+    </header>
+
+    <main>
+        <!-- First Chart: Prediction -->
+        <div class="chart-container">
+            <h2>Prediction Chart</h2>
+            <canvas id="predictionChart" width="400" height="200"></canvas>
+        </div>
+
+        <!-- Second Chart: Real vs Predicted Comparison -->
+        <div class="chart-container">
+            <h2>Real vs Predicted Comparison</h2>
+            <canvas id="comparisonChart" width="400" height="200"></canvas>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; Predicción de BTC. Ezequiel Isaac Rodriguez Tenorio.</p>
+    </footer>
+
+    <script>
+        // Load the TensorFlow.js model
+        let model;
+
+        tf.loadLayersModel('/eirodriguezt/assets/bitcoin/model_btc.json').then(loadedModel => {
+            model = loadedModel;
+            console.log('Model loaded successfully!');
+        });
+
+        // Set up Chart.js for Prediction
+        const predictionCtx = document.getElementById('predictionChart').getContext('2d');
+        const predictionChart = new Chart(predictionCtx, {
+            type: 'line',
+            data: {
+                labels: [], // Timestamps
+                datasets: [
+                    {
+                        label: 'Prediction',
+                        data: [],
+                        borderColor: 'red',
+                        fill: false
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    x: {
+                        type: 'time',
+                        time: {
+                            unit: 'minute'
+                        }
+                    }
+                }
+            }
+        });
+
+        // Set up Chart.js for Comparison
+        const comparisonCtx = document.getElementById('comparisonChart').getContext('2d');
+        const comparisonChart = new Chart(comparisonCtx, {
+            type: 'line',
+            data: {
+                labels: [], // Timestamps
+                datasets: [
+                    {
+                        label: 'Real Value',
+                        data: [],
+                        borderColor: 'blue',
+                        fill: false
+                    },
+                    {
+                        label: 'Prediction',
+                        data: [],
+                        borderColor: 'red',
+                        fill: false
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    x: {
+                        type: 'time',
+                        time: {
+                            unit: 'minute'
+                        }
+                    }
+                }
+            }
+        });
+
+        // Buffer to hold the last 60 closing prices
+        let recentData = [];
+
+        // Fetch data from Binance API (Last 5999940 data points)
+        async function fetchBinanceData() {
+            const url = 'https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1m&limit=5999940'; // Fetch the last 5999940 data points 
+            const response = await fetch(url);
+            const data = await response.json();
+
+            // Extract relevant fields for prediction
+            const timestamps = data.map(candle => new Date(candle[0]).toISOString()); // Timestamps
+            const closingPrices = data.map(candle => parseFloat(candle[4])); // Closing prices
+            return { timestamps, closingPrices };
+        }
+
+        // Preprocess data and make predictions
+        async function updateCharts() {
+            const { timestamps, closingPrices } = await fetchBinanceData();
+
+            // Update the recent data buffer
+            recentData = recentData.concat(closingPrices); // Add new data to the buffer
+
+            // Process in batches of 60 data points
+            while (recentData.length >= 60) {
+                // Get the next batch of 60 closing prices
+                const batch = recentData.slice(0, 60);
+                recentData = recentData.slice(60); // Remove the processed batch from the buffer
+
+                // Prepare input tensor with the batch of closing prices
+                const inputTensor = tf.tensor(batch).reshape([1, 60, 1]);
+
+                // Make prediction for the current batch
+                const predictionTensor = model.predict(inputTensor);
+                const prediction = predictionTensor.dataSync()[0];
+
+                // Update the prediction chart with the predictions
+                predictionChart.data.labels.push(timestamps[0]); // Use the first timestamp of the batch
+                predictionChart.data.datasets[0].data.push(prediction);
+                predictionChart.update();
+
+                // Update the comparison chart (Real vs Prediction)
+                const latestRealValue = batch[batch.length - 1];
+
+                comparisonChart.data.labels.push(timestamps[0]); // Use the first timestamp of the batch
+                comparisonChart.data.datasets[0].data.push(latestRealValue); // Real value (blue)
+                comparisonChart.data.datasets[1].data.push(prediction); // Prediction (red)
+                comparisonChart.update();
+            }
+
+            // Limit the charts to the last 100 data points
+            if (predictionChart.data.labels.length > 100) {
+                predictionChart.data.labels.shift();
+                predictionChart.data.datasets[0].data.shift();
+            }
+
+            if (comparisonChart.data.labels.length > 100) {
+                comparisonChart.data.labels.shift();
+                comparisonChart.data.datasets[0].data.shift();
+                comparisonChart.data.datasets[1].data.shift();
+            }
+        }
+
+        // Fetch the data immediately on page load, and then every minute
+        updateCharts(); // Initial data fetch
+        setInterval(updateCharts, 60000); // Fetch new data every minute
+    </script>
+
+</body>
+
+</html>

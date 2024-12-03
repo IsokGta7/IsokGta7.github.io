@@ -1,0 +1,167 @@
+body {
+    font-family: Arial, sans-serif;
+    background: linear-gradient(135deg, #1e1e1e, #292929);
+    /* Gradiente de fondo */
+    margin: 0;
+    color: #fff;
+}
+
+header,
+footer {
+    background-color: rgba(0, 0, 0, 0.85);
+    /* Fondo oscuro para el header y footer */
+    padding: 1rem;
+    text-align: center;
+}
+
+nav ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+nav ul li {
+    display: inline;
+    margin: 0 10px;
+}
+
+nav ul li a {
+    color: #fff;
+    text-decoration: none;
+    font-weight: bold;
+    transition: color 0.3s;
+}
+
+nav ul li a:hover {
+    color: #ffcc00;
+    /* Color de hover */
+}
+
+main {
+    padding: 2rem;
+    text-align: center;
+}
+
+h1,
+h2 {
+    margin: 0.5rem 0;
+}
+
+video,
+canvas {
+    margin: 10px 0;
+}
+
+button {
+    padding: 10px 20px;
+    background-color: #007bff;
+    /* Azul de Bootstrap */
+    border: none;
+    border-radius: 5px;
+    color: white;
+    font-size: 1em;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+button:hover {
+    background-color: #0056b3;
+    /* Azul más oscuro */
+}
+
+.button {
+    padding: 10px 20px;
+    background-color: #007bff;
+    /* Azul Bootstrap */
+    border: none;
+    border-radius: 5px;
+    color: white;
+    font-size: 1em;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.button:hover {
+    background-color: #0056b3;
+    /* Azul más oscuro */
+}
+
+/* Estilo para el select */
+select {
+    padding: 10px;
+    border: 1px solid #007bff;
+    border-radius: 5px;
+    background-color: rgba(255, 255, 255, 0.1);
+    color: white;
+    font-size: 1em;
+    margin: 15px 0;
+}
+
+/* Estilo para el input file */
+input[type="file"] {
+    margin: 15px 0;
+    padding: 10px;
+    border: 1px solid #007bff;
+    border-radius: 5px;
+    background-color: rgba(255, 255, 255, 0.1);
+    color: white;
+    font-size: 1em;
+}
+
+#predictionResult {
+    margin-top: 20px;
+    font-size: 1.2em;
+    font-weight: bold;
+    color: #ffcc00;
+    /* Color para resultados de predicción */
+}
+
+.prediction-text {
+    margin-top: 20px;
+    font-size: 1.5em;
+    color: #ffcc00;
+    /* Color dorado para destacar el resultado */
+}
+
+.result-text {
+    margin-top: 20px;
+    font-size: 1.5em;
+    font-weight: bold;
+    /* Enfatizar resultado */
+    color: #ffcc00;
+    /* Color especial para el resultado */
+}
+
+footer {
+    margin-top: 40px;
+    font-size: 0.9em;
+    color: #6c757d;
+    /* Color de texto más claro para mejor legibilidad */
+}
+
+.upload-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    /* Centramos los elementos dentro del contenedor */
+    margin-bottom: 20px;
+    /* Espaciado inferior */
+}
+
+.chart-container {
+    width: 100%;
+    /* Hacer el contenedor del gráfico responsivo */
+    max-width: 600px;
+    /* Ancho máximo */
+    margin: auto;
+    /* Centrar */
+    padding: 20px;
+    border: 1px solid #444;
+    /* Borde más oscuro */
+    border-radius: 8px;
+    /* Bordes redondeados */
+    background-color: #1e1e1e;
+    /* Fondo del contenedor oscuro */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+    /* Sombra más pronunciada */
+}
