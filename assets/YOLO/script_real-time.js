@@ -45,23 +45,28 @@ $(document).ready(function () {
     // Definir la función showWebcam en el ámbito global
     window.showWebcam = function () {
         $('#modal1').modal('open');
-        var video = document.querySelector("#webcam_feed");
+        const video = document.querySelector("#webcam_feed");
 
         if (navigator.mediaDevices.getUserMedia) {
             navigator.mediaDevices.getUserMedia({ video: { width: videoWidth, height: videoHeight } })
                 .then(function (stream) {
                     video.srcObject = stream;
-                    video.play();
-                    video.addEventListener('loadeddata', function () {
-                        // Inicializar YOLO después de que el video esté listo
-                        yolo_rt = ml5.YOLO(video, realTimeYOLO);
-                    });
+                    video.onloadedmetadata = function () { // Esperar a que el video tenga metadatos
+                        if (video.videoWidth > 0 && video.videoHeight > 0) {
+                            video.play();
+                            yolo_rt = ml5.YOLO(video, realTimeYOLO);
+                        } else {
+                            console.error("Error: Dimensiones del video inválidas después de loadedmetadata.");
+                        }
+                    };
                 })
                 .catch(function (err) {
                     console.error("Error al acceder a la cámara: ", err);
                 });
         }
     };
+
+
 
     // Función para detección en tiempo real
     function realTimeYOLO() {
