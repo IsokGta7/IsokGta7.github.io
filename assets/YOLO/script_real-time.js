@@ -51,7 +51,7 @@ $(document).ready(function () {
             navigator.mediaDevices.getUserMedia({ video: { width: videoWidth, height: videoHeight } })
                 .then(function (stream) {
                     video.srcObject = stream;
-                    video.onloadedmetadata = function () { // Esperar a que el video tenga metadatos
+                    video.onloadedmetadata = function () {
                         if (video.videoWidth > 0 && video.videoHeight > 0) {
                             video.play();
                             yolo_rt = ml5.YOLO(video, realTimeYOLO);
@@ -59,10 +59,21 @@ $(document).ready(function () {
                             console.error("Error: Dimensiones del video inválidas después de loadedmetadata.");
                         }
                     };
+                    video.onerror = function (error) {
+                        console.error("Error al cargar el video de la webcam:", error);
+                        M.Toast.dismissAll();
+                        M.toast({ html: 'Error al acceder a la cámara', displayLength: 3000, classes: 'rounded red' });
+                    };
                 })
                 .catch(function (err) {
                     console.error("Error al acceder a la cámara: ", err);
+                    M.Toast.dismissAll();
+                    M.toast({ html: 'Error al acceder a la cámara', displayLength: 3000, classes: 'rounded red' });
                 });
+        } else {
+            console.error("getUserMedia no está soportada en este navegador.");
+            M.Toast.dismissAll();
+            M.toast({ html: 'Error: Navegador no soportado', displayLength: 3000, classes: 'rounded red' });
         }
     };
 
