@@ -46,6 +46,13 @@
         tf.loadLayersModel('/eirodriguezt/assets/bitcoin/model_btc.json').then(loadedModel => {
             model = loadedModel;
             console.log('Model loaded successfully!');
+
+            // Compile the model after loading it
+            model.compile({
+                optimizer: 'adam',  // Or use a different optimizer if needed
+                loss: 'meanSquaredError',  // This is commonly used for regression tasks
+                metrics: ['mae']  // Optionally, you can add metrics like Mean Absolute Error
+            });
         });
 
         // Set up Chart.js for Prediction
