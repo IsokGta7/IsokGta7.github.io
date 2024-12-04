@@ -50,7 +50,11 @@
             console.error('Error loading the model:', error);
         });
 
-        // Set up Chart.js for Prediction
+        // Variables para normalizar/desnormalizar
+        let dataMean = null;
+        let dataStd = null;
+
+        // Initialize Prediction Chart
         const predictionCtx = document.getElementById('predictionChart').getContext('2d');
         const predictionChart = new Chart(predictionCtx, {
             type: 'line',
@@ -78,7 +82,7 @@
             }
         });
 
-        // Set up Chart.js for Real vs. Predicted Comparison
+        // Initialize Real vs Predicted Comparison Chart
         const comparisonCtx = document.getElementById('comparisonChart').getContext('2d');
         const comparisonChart = new Chart(comparisonCtx, {
             type: 'line',
@@ -115,20 +119,28 @@
         // Buffer to hold the last 60 closing prices
         let recentData = [];
 
+        // Fetch data from Binance
         async function fetchBinanceData() {
             try {
                 const url = 'https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1m&limit=100';
                 const response = await fetch(url);
                 const data = await response.json();
 
-                // Validate and extract the data
+                // Extract relevant fields for prediction
                 const timestamps = data.map(candle => new Date(candle[0]).toISOString());
                 const closingPrices = data.map(candle => parseFloat(candle[4]));
 
-                // Ensure that every value is valid (finite and not NaN)
+                // Ensure valid data
                 if (!closingPrices.every(price => isFinite(price))) {
-                    console.error('Invalid data detected in API response:', closingPrices);
+                    console.error('Invalid price data detected');
                     return { timestamps: [], closingPrices: [] };
+                }
+
+                // Calculate mean and std for normalization
+                if (dataMean === null || dataStd === null) {
+                    const tensorPrices = tf.tensor(closingPrices);
+                    dataMean = tensorPrices.mean().arraySync();
+                    dataStd = tensorPrices.sub(dataMean).square().mean().sqrt().arraySync();
                 }
 
                 return { timestamps, closingPrices };
@@ -154,17 +166,16 @@
                 const batch = recentData.slice(0, 60);
                 recentData = recentData.slice(1); // Slide the buffer (remove oldest value)
 
-                const inputTensor = tf.tensor(batch).reshape([1, 60, 1]);
-
                 // Normalize the input data
-                const mean = tf.mean(inputTensor);
-                const std = tf.moments(inputTensor).variance.sqrt();
-                const normalizedInput = inputTensor.sub(mean).div(std);
+                const inputTensor = tf.tensor(batch).sub(dataMean).div(dataStd).reshape([1, 60, 1]);
 
                 // Predict using the model
                 try {
-                    const predictionTensor = model.predict(normalizedInput);
-                    const prediction = predictionTensor.dataSync()[0]; // Get single prediction value
+                    const predictionTensor = model.predict(inputTensor);
+                    const normalizedPrediction = predictionTensor.dataSync()[0]; // Single prediction value
+
+                    // Desnormalize the prediction back to the original scale
+                    const prediction = normalizedPrediction * dataStd + dataMean;
 
                     // Update charts
                     predictionChart.data.labels.push(timestamps[0]);
