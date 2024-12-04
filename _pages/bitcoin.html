@@ -111,7 +111,7 @@
             }
         });
 
-        // Buffer to hold the last 10 closing prices
+        // Buffer to hold the last 60 closing prices
         let recentData = [];
 
         async function fetchBinanceData() {
@@ -153,36 +153,38 @@
 
             // Process the latest price
             recentData = recentData.concat(closingPrices);
-            if (recentData.length >= 60) {
-                recentData = recentData.slice(1); // Keep only the last 60 prices
+
+            // Limitar el tamaño del buffer a 60 elementos
+            if (recentData.length > 60) {
+                recentData = recentData.slice(recentData.length - 60); // Mantener solo los últimos 60 precios
             }
 
-            // Prepare input Tensor with the last 60 closing prices if we have enough data
+            // Preparate el tensor de entrada solo si tenemos al menos 60 precios
             if (recentData.length < 60) {
-                return; // No prediction can be made yet
+                return; // No podemos hacer una predicción todavía
             }
 
             const inputTensor = tf.tensor(recentData).sub(dataMean).div(dataStd).reshape([1, 60, 1]);
 
             try {
                 const predictionTensor = model.predict(inputTensor);
-                const normalizedPrediction = predictionTensor.dataSync()[0]; // Single prediction value
+                const normalizedPrediction = predictionTensor.dataSync()[0]; // Valor de predicción única
                 const prediction = normalizedPrediction * dataStd + dataMean; // Desnormalizar
 
-                // Get the current timestamp
+                // Obtener timestamp actual
                 const currentTimestamp = new Date();
 
-                // Update charts with the new data
+                // Actualiza las gráficas con los nuevos datos
                 predictionChart.data.labels.push(currentTimestamp);
                 predictionChart.data.datasets[0].data.push(prediction);
                 predictionChart.update();
 
                 comparisonChart.data.labels.push(currentTimestamp);
-                comparisonChart.data.datasets[0].data.push(recentData[recentData.length - 1]); // Real value
-                comparisonChart.data.datasets[1].data.push(prediction); // Predicted value
+                comparisonChart.data.datasets[0].data.push(recentData[recentData.length - 1]); // Valor real
+                comparisonChart.data.datasets[1].data.push(prediction); // Valor predicho
                 comparisonChart.update();
 
-                // Limit the number of data points in the chart
+                // Limitar el número de puntos de datos en la gráfica
                 if (predictionChart.data.labels.length > 100) {
                     predictionChart.data.labels.shift();
                     predictionChart.data.datasets[0].data.shift();
