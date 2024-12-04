@@ -16,10 +16,10 @@ RUN pip install opencv-python==4.8.0.74
 
 COPY . .
 
-EXPOSE 3018
+EXPOSE 3031
 
 ENV FLASK_APP=app.py
 ENV FLASK_RUN_HOST=0.0.0.0
-ENV FLASK_RUN_PORT=3018
+ENV FLASK_RUN_PORT=3031
 
 CMD ["flask", "run"]
