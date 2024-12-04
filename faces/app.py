@@ -73,21 +73,13 @@ def index():
 # Prediction route
 @app.route('/eirodriguezt/predict', methods=['POST'])
 def predict():
-    # Check if an image file was uploaded
-    if 'file' not in request.files:
-        return jsonify({'error': 'No file uploaded'})
+    # Check if an image file was uploaded (same as before)
 
-    file = request.files['file']
-
-    if file.filename == '':
-        return jsonify({'error': 'No selected file'})
-
+    # Use who_is_it function for prediction
     image = Image.open(BytesIO(file.read()))
-
     result = who_is_it(image, database, FRmodel)
 
-    # Return the result
-    return jsonify({'result': result})
+    # Return the result (same as before)
 
 
 if __name__ == '__main__':
