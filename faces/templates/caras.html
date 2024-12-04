@@ -1,179 +1,130 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reconocimiento Facial</title>
-
-    <!-- CSS Dependencies (Materialize) -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-
+    <title>Detección de Rostros</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
     <style>
         body {
+            font-family: 'Roboto', sans-serif;
+            background: #f4f4f4;
+            margin: 0;
+            padding: 0;
             display: flex;
             justify-content: center;
             align-items: center;
-            flex-direction: column;
             height: 100vh;
-            background-color: #f0f4f8;
-            font-family: 'Arial', sans-serif;
+            overflow: hidden;
         }
 
         .container {
             text-align: center;
-            background: white;
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
             padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            width: 80%;
+            max-width: 600px;
         }
 
-        #webcam_feed {
-            border-radius: 10px;
-            max-width: 100%;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-        }
-
-        .label {
-            margin-top: 10px;
-            font-size: 20px;
+        h1 {
             color: #333;
+            font-size: 2rem;
+            margin-bottom: 20px;
         }
 
-        .objno {
-            font-weight: bold;
-            margin-top: 15px;
-            font-size: 18px;
+        #webcam {
+            width: 100%;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        #prediction {
+            margin-top: 20px;
+            font-size: 1.2rem;
+            color: #333;
+            animation: fadeIn 1s ease-in-out;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 1rem;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
         }
     </style>
-
-    <!-- JS Dependencies (jQuery and Materialize) -->
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
 </head>
 
 <body>
-    <div class="container z-depth-4">
-        <h3 class="header">Reconocimiento Facial</h3>
-        <p>Sube una imagen o utiliza la cámara para reconocer rostros.</p>
-
-        <!-- Webcam Section -->
-        <video id="webcam_feed" autoplay></video>
-        <canvas id="realTimeCanvas" width="160" height="160" style="display: none;"></canvas>
-        <div class="label objno">Objetos detectados: 0</div>
-        <a class="btn-large waves-effect waves-light teal" onclick="showWebcam()">Iniciar Reconocimiento Facial</a>
-        <a class="btn-large waves-effect waves-light teal" onclick="captureImage()">Capturar Imagen</a>
-
-        <!-- Upload Section -->
-        <form id="uploadForm" enctype="multipart/form-data" method="POST">
-            <input type="file" name="file" accept="image/*">
-            <button type="submit">Subir Imagen</button>
-        </form>
-
-
-
-        <form id="uploadForm" enctype="multipart/form-data" method="POST" action="/eirodriguezt/predict">
-            <div class="file-field input-field">
-                <div class="btn teal">
-                    <span>Seleccionar Imagen</span>
-                    <input type="file" name="file" accept="image/*">
-                </div>
-                <div class="file-path-wrapper">
-                    <input class="file-path validate" type="text" placeholder="Sube una imagen para analizar">
-                </div>
-            </div>
-            <button type="submit" class="btn-large waves-effect waves-light teal">Subir Imagen</button>
-        </form>
-
-        <div id="result" class="objno"></div>
+    <div class="container">
+        <h1>Detección de Rostros en Tiempo Real</h1>
+        <video id="webcam" autoplay></video>
+        <p id="prediction">Esperando rostro...</p>
+        <button id="captureBtn">Capturar Imagen</button>
     </div>
 
     <script>
-        $(document).ready(function () {
-            M.toast({
-                html: 'Interfaz cargada',
-                displayLength: 2000,
-                classes: 'rounded blue',
+        const webcam = document.getElementById("webcam");
+        const predictionText = document.getElementById("prediction");
+        const captureBtn = document.getElementById("captureBtn");
+
+        // Access webcam
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then((stream) => {
+                webcam.srcObject = stream;
+            })
+            .catch((err) => {
+                console.log("Error accessing webcam: ", err);
+                predictionText.innerText = "No se pudo acceder a la cámara.";
             });
 
-            // Manejo del formulario para subir imágenes
-            $("#uploadForm").on("submit", function (e) {
-                e.preventDefault(); // Evita el comportamiento por defecto del formulario
-                const formData = new FormData(this);
-
-                $.ajax({
-                    url: "/eirodrigezt/predict", // La misma URL que para el formulario
-                    type: "POST",
-                    data: formData,
-                    processData: false,
-                    contentType: false,
-                    success: function (response) {
-                        if (response.result) {
-                            M.toast({ html: `Resultado: ${response.result}`, displayLength: 5000, classes: 'rounded green' });
-                            $("#result").text(response.result);
-                        } else {
-                            M.toast({ html: "Error en el reconocimiento facial.", displayLength: 3000, classes: 'rounded red' });
-                        }
-                    },
-                    error: function () {
-                        M.toast({ html: "Error al enviar la imagen.", displayLength: 3000, classes: 'rounded red' });
-                    },
-                });
-            });
-        });
-
-        function showWebcam() {
-            const video = document.querySelector("#webcam_feed");
-            if (navigator.mediaDevices.getUserMedia) {
-                navigator.mediaDevices.getUserMedia({ video: true })
-                    .then(function (stream) {
-                        video.srcObject = stream;
-                        video.play();
-                    })
-                    .catch(function () {
-                        M.toast({ html: "No se pudo acceder a la cámara.", displayLength: 3000, classes: 'rounded red' });
-                    });
-            } else {
-                M.toast({ html: "Tu navegador no soporta getUserMedia.", displayLength: 3000, classes: 'rounded red' });
-            }
-        }
+        captureBtn.addEventListener("click", captureImage);
 
         function captureImage() {
-            const video = document.querySelector("#webcam_feed");
-            const canvas = document.querySelector("#realTimeCanvas");
+            const canvas = document.createElement("canvas");
             const context = canvas.getContext("2d");
-
-            // Ajustar el tamaño del canvas al tamaño del video
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            context.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-            // Convertir la imagen a formato de datos
-            canvas.toBlob(function (blob) {
+            canvas.width = webcam.videoWidth;
+            canvas.height = webcam.videoHeight;
+            context.drawImage(webcam, 0, 0, canvas.width, canvas.height);
+            canvas.toBlob((blob) => {
                 const formData = new FormData();
-                formData.append('file', blob, 'captured_image.jpg');
+                formData.append("image", blob);
 
-                // Realizar la solicitud AJAX
-                $.ajax({
-                    url: '/eirodriguezt/predict', // La misma URL que para el formulario
-                    type: 'POST',
-                    data: formData,
-                    processData: false,
-                    contentType: false,
-                    success: function (response) {
-                        if (response.result) {
-                            M.toast({ html: `Resultado: ${response.result}`, displayLength: 5000, classes: 'rounded green' });
-                            $("#result").text(response.result);
-                        } else {
-                            M.toast({ html: "Error en el reconocimiento facial.", displayLength: 3000, classes: 'rounded red' });
-                        }
-                    },
-                    error: function () {
-                        M.toast({ html: "Error al enviar la imagen.", displayLength: 3000, classes: 'rounded red' });
-                    },
-                });
-            }, 'image/jpeg');
+                // Send image to Flask server for prediction
+                fetch("/predict", {
+                    method: "POST",
+                    body: formData
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        predictionText.innerText = data.result;
+                    })
+                    .catch(err => {
+                        console.log("Error in prediction: ", err);
+                        predictionText.innerText = "Error al realizar la predicción.";
+                    });
+            }, "image/jpeg");
         }
     </script>
 </body>

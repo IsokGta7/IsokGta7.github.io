@@ -70,16 +70,12 @@ def index():
     return render_template('caras.html')
 
 
-# Prediction route
 @app.route('/predict', methods=['POST'])
 def predict():
-    # Check if an image file was uploaded (same as before)
-
-    # Use who_is_it function for prediction
-    image = Image.open(BytesIO(file.read()))
+    file = request.files['image']
+    image = Image.open(file.stream)
     result = who_is_it(image, database, FRmodel)
-
-    # Return the result (same as before)
+    return jsonify({"result": result})
 
 
 if __name__ == '__main__':
