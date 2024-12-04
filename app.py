@@ -12,7 +12,7 @@ app = Flask(
 )
 
 # Load model
-json_file = open('/assets/faces/model_faces.json', 'r')
+json_file = open('eirodriguezt/assets/faces/model_faces.json', 'r')
 loaded_model_json = json_file.read()
 json_file.close()
 
