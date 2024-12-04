@@ -110,7 +110,7 @@
 
             async function initializeFaceRecognition(video) {
                 // Cargar el modelo de reconocimiento facial
-                yolo_rt = await tf.loadGraphModel('/eirodriguezt/assets/faces/model.json'); // Asegúrate de usar la URL del modelo
+                yolo_rt = await tf.loadGraphModel('/eirodriguezt/assets/faces/model_faces.json'); // Asegúrate de usar la URL del modelo
 
                 // Inicia el intervalo para detección
                 setInterval(() => detectFaces(video), 1000 / fpsLimit);
