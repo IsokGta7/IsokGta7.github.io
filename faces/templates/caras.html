@@ -35,10 +35,8 @@
         }
 
         canvas {
-            display: block;
-            margin-top: 10px;
-            border-radius: 10px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            display: none;
+            /* Ocultar el canvas */
         }
 
         .label {
@@ -74,9 +72,10 @@
 
         <!-- Webcam Section -->
         <video id="webcam_feed" autoplay></video>
-        <canvas id="realTimeCanvas" width="320" height="240"></canvas>
+        <canvas id="realTimeCanvas" width="160" height="160"></canvas>
         <div class="label objno">Objetos detectados: 0</div>
         <a class="btn-large waves-effect waves-light teal" onclick="showWebcam()">Iniciar Reconocimiento Facial</a>
+        <a class="btn-large waves-effect waves-light teal" onclick="captureImage()">Capturar Imagen</a>
 
         <!-- Upload Section -->
         <form id="uploadForm" enctype="multipart/form-data" method="POST" action="/predict">
@@ -91,14 +90,11 @@
             </div>
             <button type="submit" class="btn-large waves-effect waves-light teal">Subir Imagen</button>
         </form>
-
         <div id="result" class="objno"></div>
     </div>
 
     <script>
         $(document).ready(function () {
-            $('.modal').modal({ dismissible: false });
-
             M.toast({
                 html: 'Interfaz cargada',
                 displayLength: 2000,
@@ -118,26 +114,14 @@
                     contentType: false,
                     success: function (response) {
                         if (response.result) {
-                            M.toast({
-                                html: `Resultado: ${response.result}`,
-                                displayLength: 5000,
-                                classes: 'rounded green',
-                            });
+                            M.toast({ html: `Resultado: ${response.result}`, displayLength: 5000, classes: 'rounded green' });
                             $("#result").text(response.result);
                         } else {
-                            M.toast({
-                                html: "Error en el reconocimiento facial.",
-                                displayLength: 3000,
-                                classes: 'rounded red',
-                            });
+                            M.toast({ html: "Error en el reconocimiento facial.", displayLength: 3000, classes: 'rounded red' });
                         }
                     },
                     error: function () {
-                        M.toast({
-                            html: "Error al enviar la imagen.",
-                            displayLength: 3000,
-                            classes: 'rounded red',
-                        });
+                        M.toast({ html: "Error al enviar la imagen.", displayLength: 3000, classes: 'rounded red' });
                     },
                 });
             });
@@ -145,27 +129,55 @@
 
         function showWebcam() {
             const video = document.querySelector("#webcam_feed");
-
             if (navigator.mediaDevices.getUserMedia) {
-                navigator.mediaDevices.getUserMedia({
-                    video: true
-                }).then(function (stream) {
-                    video.srcObject = stream;
-                    video.play();
-                }).catch(function (err) {
-                    M.toast({
-                        html: "No se pudo acceder a la cámara.",
-                        displayLength: 3000,
-                        classes: 'rounded red',
+                navigator.mediaDevices.getUserMedia({ video: true })
+                    .then(function (stream) {
+                        video.srcObject = stream;
+                        video.play();
+                    })
+                    .catch(function () {
+                        M.toast({ html: "No se pudo acceder a la cámara.", displayLength: 3000, classes: 'rounded red' });
                     });
-                });
             } else {
-                M.toast({
-                    html: "Tu navegador no soporta getUserMedia.",
-                    displayLength: 3000,
-                    classes: 'rounded red',
-                });
+                M.toast({ html: "Tu navegador no soporta getUserMedia.", displayLength: 3000, classes: 'rounded red' });
             }
+        }
+
+        function captureImage() {
+            const video = document.querySelector("#webcam_feed");
+            const canvas = document.querySelector("#realTimeCanvas");
+            const context = canvas.getContext("2d");
+
+            // Ajustar el tamaño del canvas al tamaño del video
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            // Convertir la imagen a formato de datos
+            canvas.toBlob(function (blob) {
+                const formData = new FormData();
+                formData.append('file', blob, 'captured_image.jpg');
+
+                // Realizar la solicitud AJAX
+                $.ajax({
+                    url: '/predict', // La misma URL que para el formulario
+                    type: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function (response) {
+                        if (response.result) {
+                            M.toast({ html: `Resultado: ${response.result}`, displayLength: 5000, classes: 'rounded green' });
+                            $("#result").text(response.result);
+                        } else {
+                            M.toast({ html: "Error en el reconocimiento facial.", displayLength: 3000, classes: 'rounded red' });
+                        }
+                    },
+                    error: function () {
+                        M.toast({ html: "Error al enviar la imagen.", displayLength: 3000, classes: 'rounded red' });
+                    },
+                });
+            }, 'image/jpeg');
         }
     </script>
 </body>
