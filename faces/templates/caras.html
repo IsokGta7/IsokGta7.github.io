@@ -66,6 +66,13 @@
         <a class="btn-large waves-effect waves-light teal" onclick="captureImage()">Capturar Imagen</a>
 
         <!-- Upload Section -->
+        <form id="uploadForm" enctype="multipart/form-data" method="POST">
+            <input type="file" name="file" accept="image/*">
+            <button type="submit">Subir Imagen</button>
+        </form>
+
+
+
         <form id="uploadForm" enctype="multipart/form-data" method="POST" action="/predict">
             <div class="file-field input-field">
                 <div class="btn teal">
@@ -96,7 +103,7 @@
                 const formData = new FormData(this);
 
                 $.ajax({
-                    url: $(this).attr("action"), // La misma URL que para el formulario
+                    url: "/predict", // La misma URL que para el formulario
                     type: "POST",
                     data: formData,
                     processData: false,
