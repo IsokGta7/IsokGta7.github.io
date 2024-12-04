@@ -71,7 +71,7 @@ def index():
 
 
 # Prediction route
-@app.route('/predict', methods=['POST'])
+@app.route('/eirodriguezt/predict', methods=['POST'])
 def predict():
     # Check if an image file was uploaded
     if 'file' not in request.files:
