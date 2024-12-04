@@ -7,12 +7,12 @@ from PIL import Image
 app = Flask(__name__)
 
 # Load model
-json_file = open('model.json', 'r')
+json_file = open('/eirodriguezt/assets/faces/model_faces.json', 'r')
 loaded_model_json = json_file.read()
 json_file.close()
 
 model = model_from_json(loaded_model_json)
-model.load_weights('model.h5')
+model.load_weights('/eirodriguezt/assets/faces/model.h5')
 FRmodel = model
 
 
@@ -27,15 +27,16 @@ def img_to_encoding(image_path, model):
 
 # Initialize the database
 database = {
-    "victor": img_to_encoding("victor.jpg", FRmodel),
-    "antonio": img_to_encoding("antonio.jpeg", FRmodel),
-    "daniel": img_to_encoding("Daniel8A.jpg", FRmodel),
-    "gael": img_to_encoding("gael.jpg", FRmodel),
-    "santiago": img_to_encoding("gsrrobles.jpg", FRmodel),
-    "isaac": img_to_encoding("Isaac.jpg", FRmodel),
-    "manuel": img_to_encoding("manuel.jpg", FRmodel),
-    "manuelM": img_to_encoding("ManuelM.jpg", FRmodel),
-    "mario": img_to_encoding("mario.jpeg", FRmodel),
+    "Victor": img_to_encoding("/eirodriguezt/assets/faces/victor.jpg", FRmodel),
+    "Antonio": img_to_encoding("/eirodriguezt/assets/faces/antonio.jpeg", FRmodel),
+    "Daniel": img_to_encoding("/eirodriguezt/assets/faces/Daniel8A.jpg", FRmodel),
+    "Gael": img_to_encoding("/eirodriguezt/assets/faces/gael.jpg", FRmodel),
+    "Santiago": img_to_encoding("/eirodriguezt/assets/faces/gsrrobles.jpg", FRmodel),
+    "Isaac": img_to_encoding("/eirodriguezt/assets/faces/Isaac.jpg", FRmodel),
+    "Manuel": img_to_encoding("/eirodriguezt/assets/faces/manuel.jpg", FRmodel),
+    "Manuel M": img_to_encoding("/eirodriguezt/assets/faces/ManuelM.jpg", FRmodel),
+    "Mario": img_to_encoding("/eirodriguezt/assets/faces/mario.jpeg", FRmodel),
+    "Edelmira": img_to_encoding("/eirodriguezt/assets/faces/edelmira.png", FRmodel),
 }
 
 
@@ -63,7 +64,7 @@ def who_is_it(image, database, model):
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return render_template('/eirodriguezt/assets/faces/caras.html')
 
 
 # Prediction route
