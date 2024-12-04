@@ -34,29 +34,10 @@
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
         }
 
-        canvas {
-            display: none;
-            /* Ocultar el canvas */
-        }
-
-        .label {
-            margin-top: 10px;
-            font-size: 20px;
-            color: #333;
-        }
-
-        .btn-large {
-            transition: all 0.3s;
-        }
-
-        .btn-large:hover {
-            background-color: #00796b;
-        }
-
-        .objno {
-            font-weight: bold;
+        #result {
             margin-top: 15px;
             font-size: 18px;
+            color: #333;
         }
     </style>
 
@@ -73,12 +54,13 @@
         <!-- Webcam Section -->
         <video id="webcam_feed" autoplay></video>
         <canvas id="realTimeCanvas" width="160" height="160"></canvas>
-        <div class="label objno">Objetos detectados: 0</div>
+        <div class="label" id="result">Objetos detectados: 0</div>
+
         <a class="btn-large waves-effect waves-light teal" onclick="showWebcam()">Iniciar Reconocimiento Facial</a>
         <a class="btn-large waves-effect waves-light teal" onclick="captureImage()">Capturar Imagen</a>
 
         <!-- Upload Section -->
-        <form id="uploadForm" enctype="multipart/form-data" method="POST" action="/faces/predict">
+        <form id="uploadForm" enctype="multipart/form-data" method="POST" action="/predict">
             <div class="file-field input-field">
                 <div class="btn teal">
                     <span>Seleccionar Imagen</span>
@@ -90,6 +72,7 @@
             </div>
             <button type="submit" class="btn-large waves-effect waves-light teal">Subir Imagen</button>
         </form>
+
         <div id="result" class="objno"></div>
     </div>
 
@@ -107,7 +90,7 @@
                 const formData = new FormData(this);
 
                 $.ajax({
-                    url: $(this).attr("action"),
+                    url: $(this).attr("action"), // URL correcta
                     type: "POST",
                     data: formData,
                     processData: false,
@@ -160,7 +143,7 @@
 
                 // Realizar la solicitud AJAX
                 $.ajax({
-                    url: '/faces/predict', // La misma URL que para el formulario X D
+                    url: '/predict', // Asegúrate de que esto sea correcto
                     type: 'POST',
                     data: formData,
                     processData: false,
