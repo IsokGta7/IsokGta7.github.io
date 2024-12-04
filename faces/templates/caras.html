@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Reconocimiento Facial</title>
+
+    <!-- CSS Dependencies (Materialize) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f2f2f2;
+        }
+
+        .video-preview-container {
+            margin-top: 10px;
+        }
+
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            border: 3px solid #76c7c0;
+            /* Color deseado para el borde */
+            border-radius: 10px;
+            /* Esquinas redondeadas */
+        }
+
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 24px;
+        }
+
+        .objno {
+            font-size: 20px;
+            margin-top: 10px;
+        }
+    </style>
+
+    <!-- JS Dependencies (jQuery and Materialize) -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+    <script src="https://unpkg.com/ml5@latest/dist/ml5.min.js"></script> <!-- ml5 latest version -->
+</head>
+
+<body>
+
+    <div class="container">
+        <h1 class="center-align">Reconocimiento Facial</h1>
+        <div class="row">
+            <div class="col s12">
+                <video id="webcam_feed" style="display: none;" autoplay></video>
+                <canvas id="realTimeCanvas" width="320" height="240"></canvas>
+                <div class="loading" style="display: none;">Cargando modelo...</div>
+                <div class="objno">Objetos detectados: 0</div>
+                <button class="btn-large" onclick="showWebcam()">Iniciar Reconocimiento Facial</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        $(document).ready(function () {
+            $('.modal').modal({ dismissible: false });
+
+            const videoWidth = 320;
+            const videoHeight = 240;
+            const fpsLimit = 10;
+
+            const videoCanvas = document.querySelector("#realTimeCanvas");
+            const rtCtx = videoCanvas.getContext("2d");
+            let faceapi;
+            let video = null;
+
+            window.showWebcam = function () {
+                $('#modal1').modal('open');
+                video = document.querySelector("#webcam_feed");
+                let intervalId;
+
+                if (navigator.mediaDevices.getUserMedia) {
+                    navigator.mediaDevices.getUserMedia({
+                        video: {
+                            width: videoWidth,
+                            height: videoHeight
+                        }
+                    })
+                        .then(function (stream) {
+                            video.srcObject = stream;
+                            video.onloadedmetadata = function () {
+                                if (video.videoWidth > 0 && video.videoHeight > 0) {
+                                    video.play();
+                                    $('.loading').show(); // Mostrar carga
+                                    faceapi = ml5.faceApi(video, modelReady); // Iniciar el modelo de reconocimiento facial
+                                } else {
+                                    handleError("Dimensiones del video inválidas");
+                                }
+                            };
+                            video.onerror = function (error) {
+                                handleError("Error al cargar el video", error);
+                            };
+                        })
+                        .catch(function (err) {
+                            handleError("Error al acceder a la cámara", err);
+                        });
+                } else {
+                    handleError("getUserMedia no soportado");
+                }
+            };
+
+            function modelReady() {
+                $('.loading').hide(); // Ocultar carga
+                detectWithFaceAPI(); // Iniciar detección
+                setInterval(detectWithFaceAPI, 1000 / fpsLimit); // Iniciar detección a intervalos
+                M.toast({
+                    html: 'Modelo de reconocimiento facial cargado',
+                    displayLength: 2000,
+                    classes: 'rounded green'
+                });
+            }
+
+            function handleError(message, error = null) {
+                if (error) console.error(message + ":", error);
+                else console.error(message);
+                M.toast({
+                    html: message,
+                    displayLength: 3000,
+                    classes: 'rounded red'
+                });
+            }
+
+            function detectWithFaceAPI() {
+                if (!faceapi || !video || video.videoWidth === 0 || video.videoHeight === 0) {
+                    return;
+                }
+
+                rtCtx.drawImage(video, 0, 0, videoCanvas.width, videoCanvas.height);
+
+                faceapi.detect()
+                    .then(results => {
+                        processResults(results);
+                    })
+                    .catch(err => {
+                        console.error("Error en la detección:", err);
+                    });
+            }
+
+            function processResults(results) {
+                rtCtx.clearRect(0, 0, videoCanvas.width, videoCanvas.height);
+                rtCtx.drawImage(video, 0, 0, videoCanvas.width, videoCanvas.height);
+
+                results.forEach(result => {
+                    const x = result.alignedRect._x;
+                    const y = result.alignedRect._y;
+                    const w = result.alignedRect._width;
+                    const h = result.alignedRect._height;
+                    const label = 'Reconocido'; // Puedes añadir un nombre o ID aquí si tienes uno
+                    drawRectangle(rtCtx, y, x, w, h, label);
+                });
+
+                $('.objno').text(`Objetos detectados: ${results.length}`);
+            }
+
+            function drawRectangle(ctx, y, x, w, h, lbl) {
+                ctx.beginPath();
+                ctx.rect(x, y, w, h);
+                ctx.lineWidth = 2;
+                ctx.strokeStyle = '#76c7c0';
+                ctx.stroke();
+
+                ctx.font = '16px Arial';
+                ctx.fillStyle = 'green';
+                ctx.fillText(lbl, x, y > 20 ? y - 10 : 20);
+            }
+        });
+    </script>
+</body>
+
+</html>
