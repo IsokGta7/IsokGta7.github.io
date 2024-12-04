@@ -4,7 +4,12 @@ import numpy as np
 from tensorflow.keras.models import model_from_json
 from io import BytesIO
 from PIL import Image
-app = Flask(__name__)
+# Cambiar los directorios por defecto
+app = Flask(
+    __name__,
+    template_folder='pages',  # Carpeta para tus HTML
+    static_folder='styles'    # Carpeta para tus CSS, JS e imágenes
+)
 
 # Load model
 json_file = open('/eirodriguezt/assets/faces/model_faces.json', 'r')
@@ -64,7 +69,7 @@ def who_is_it(image, database, model):
 
 @app.route('/')
 def index():
-    return render_template('/eirodriguezt/assets/faces/caras.html')
+    return render_template('/eirodriguezt/pages/index.html')
 
 
 # Prediction route
