@@ -1,3 +1,9 @@
+---
+layout: default
+title: Bitcoin Prediction
+permalink: /bitcoin/
+---
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -5,7 +11,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BTC/USDT Predictions</title>
-    <link rel="stylesheet" href="/eirodriguezt/styles/style.css"> <!-- Link to external stylesheet -->
+    <link rel="stylesheet" href="/styles/style.css">
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
@@ -15,7 +21,7 @@
     <header>
         <nav>
             <ul>
-                <li><a href="/eirodriguezt/index.html">Inicio</a></li>
+                <li><a href="/index.html">Inicio</a></li>
             </ul>
         </nav>
         <h1>BTC/USDT Predictions</h1>
@@ -42,7 +48,7 @@
         let dataMean = null;
         let dataStd = null;
 
-        tf.loadLayersModel('/eirodriguezt/assets/bitcoin/model_btc.json').then(loadedModel => {
+        tf.loadLayersModel('/assets/bitcoin/model_btc.json').then(loadedModel => {
             model = loadedModel;
             console.log('Model loaded successfully!');
         }).catch(error => {

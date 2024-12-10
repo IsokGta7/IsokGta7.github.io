@@ -11,42 +11,57 @@ permalink: /flowers/
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Clasificador de Flores</title>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <link rel="stylesheet" href="/styles/style.css">
 </head>
 
 <body>
-    <h1>Clasificador de Flores</h1>
-    <button onclick="startCamera()">Usar Cámara</button>
-    <select id="cameraOptions">
-        <option value="user">Cámara Frontal</option>
-        <option value="environment">Cámara Trasera</option>
-    </select>
-    <video id="video" width="180" height="180" autoplay style="display:none;"></video>
-    <button onclick="takePhoto()">Tomar Foto</button>
-    <canvas id="canvas" width="180" height="180" style="display:none;"></canvas>
-    <h2 id="predictionResult"></h2>
+    <header>
+        <nav>
+            <ul>
+                <li><a href="/index.html">Inicio</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <h1>Clasificador de Flores en Tiempo Real</h1>
+        <button onclick="startCamera()">Usar Cámara</button>
+        <select id="cameraOptions">
+            <option value="user">Cámara Frontal</option>
+            <option value="environment">Cámara Trasera</option>
+        </select>
+        <video id="video" width="180" height="180" autoplay></video>
+        <canvas id="canvas" width="180" height="180" style="display:none;"></canvas>
+        <input type="file" accept="image/*" onchange="uploadImage(event)">
+        <h2 id="predictionResult">Esperando predicción...</h2>
+        <canvas id="processedCanvas" width="180" height="180" style="border: 1px solid #fff;"></canvas>
+        <h3>Imagen Preprocesada</h3>
+    </main>
+
+    <footer>
+        <p>&copy; Clasificador Flores. Ezequiel Isaac Rodriguez Tenorio</p>
+    </footer>
 
     <script>
         let model;
         let videoStream;
-
-        // Definir las clases de flores según el dataset
-        const classNames = ["Margarita", "Diente de León", "Rosa", "Girasol", "Tulipán"];
+        let predictionInterval;
+        const classNames = ['Margarita', 'Diente de leon', 'Rosas', 'Girasoles', 'Tulipanes']; // Nombres de clases adecuados
 
         async function loadModel() {
             try {
                 console.log("Cargando modelo...");
                 model = await tf.loadLayersModel('/assets/flowers/model_flowers.json');
+                console.log("Modelo cargado correctamente.");
+                return model;
             } catch (error) {
                 console.error("Error al cargar el modelo:", error);
-                if (error.message.includes("Failed to fetch")) {
-                    console.error("Verifica tu ruta a model.json y asegúrate de que sea accesible.");
-                } else {
-                    console.error("Ocurrió un error desconocido.");
-                }
             }
         }
 
-        function startCamera() {
+        async function startCamera() {
+            const model = await loadModel(); // Cargar el modelo aquí
+
             const video = document.getElementById("video");
             const cameraOptions = document.getElementById("cameraOptions").value;
 
@@ -54,48 +69,92 @@ permalink: /flowers/
                 videoStream.getTracks().forEach(track => track.stop());
             }
 
-            navigator.mediaDevices.getUserMedia({ 
+            navigator.mediaDevices.getUserMedia({
                 video: { facingMode: cameraOptions }
             }).then(stream => {
                 videoStream = stream;
                 video.srcObject = stream;
                 video.style.display = "block";
+
+                // Iniciar predicciones en tiempo real
+                if (predictionInterval) clearInterval(predictionInterval);
+                predictionInterval = setInterval(() => predict(video, model), 2000); // Intervalo de 2 segundos
             }).catch(error => {
                 console.error("Error al acceder a la cámara:", error);
                 alert("No se pudo acceder a la cámara.");
             });
         }
 
-        function takePhoto() {
-            const video = document.getElementById("video");
+        async function predict(video, model) {
             const canvas = document.getElementById("canvas");
             const ctx = canvas.getContext("2d");
-            ctx.drawImage(video, 0, 0, 180, 180);
-            predict();
-        }
 
-        async function predict() {
-            console.log('Iniciando predicción...');
-            const canvas = document.getElementById("canvas");
-            const imgTensor = tf.browser.fromPixels(canvas).toFloat();
+            // Dibujar frame del video en el canvas
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-            const resizedTensor = tf.image.resizeBilinear(imgTensor, [180, 180]);
-            const normalizedTensor = resizedTensor.div(255.0).expandDims(0);
+            // Crear tensor de imagen sin normalización adicional
+            const imgTensor = tf.browser.fromPixels(canvas).expandDims(0);
+
+            // Visualizar imagen preprocesada
+            const processedCanvas = document.getElementById("processedCanvas");
+            const processedCtx = processedCanvas.getContext("2d");
+            processedCtx.clearRect(0, 0, processedCanvas.width, processedCanvas.height);
+            processedCtx.drawImage(video, 0, 0, processedCanvas.width, processedCanvas.height);
 
             try {
-                const predictions = await model.predict(normalizedTensor).data();
+                const predictions = await model.predict(imgTensor).data();
                 const predictedClass = predictions.indexOf(Math.max(...predictions));
-
-                // Mostrar el nombre de la flor según la clase predicha
                 const flowerName = classNames[predictedClass];
+
                 document.getElementById("predictionResult").innerText = `Predicción: ${flowerName}`;
+                console.log("Predicción obtenida:", flowerName);
             } catch (predictError) {
                 console.error("Error durante la predicción:", predictError);
-                alert("Ocurrió un error durante la predicción. Revisa la consola para más detalles.");
+                document.getElementById("predictionResult").innerText = "Error en la predicción.";
             }
         }
 
-        loadModel();
+        function uploadImage(event) {
+            const file = event.target.files[0];
+            const reader = new FileReader();
+
+            reader.onload = function (e) {
+                const img = new Image();
+                img.src = e.target.result;
+
+                img.onload = function () {
+                    const canvas = document.getElementById("canvas");
+                    const ctx = canvas.getContext("2d");
+
+                    // Dibujar la imagen cargada en el canvas
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+                    // Crear tensor de imagen sin normalización adicional
+                    const imgTensor = tf.browser.fromPixels(canvas).expandDims(0);
+
+                    // Predecir la imagen cargada
+                    predictFromImage(imgTensor);
+                };
+            };
+
+            reader.readAsDataURL(file);
+        }
+
+        async function predictFromImage(tensor) {
+            try {
+                const predictions = await model.predict(tensor).data();
+                const predictedClass = predictions.indexOf(Math.max(...predictions));
+                const flowerName = classNames[predictedClass];
+
+                document.getElementById("predictionResult").innerText = `Predicción: ${flowerName}`;
+                console.log("Predicción obtenida:", flowerName);
+            } catch (predictError) {
+                console.error("Error durante la predicción:", predictError);
+                document.getElementById("predictionResult").innerText = "Error en la predicción.";
+            }
+        }
+
+        window.onload = startCamera;
     </script>
 </body>
 
