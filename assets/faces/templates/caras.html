@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detección de Rostros</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: #f4f4f4;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            text-align: center;
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            padding: 20px;
+            width: 80%;
+            max-width: 600px;
+        }
+
+        h1 {
+            color: #333;
+            font-size: 2rem;
+            margin-bottom: 20px;
+        }
+
+        #webcam {
+            width: 100%;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        #prediction {
+            margin-top: 20px;
+            font-size: 1.2rem;
+            color: #333;
+            animation: fadeIn 1s ease-in-out;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 1rem;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Detección de Rostros en Tiempo Real</h1>
+        <video id="webcam" autoplay></video>
+        <p id="prediction">Esperando rostro...</p>
+        <button id="captureBtn">Capturar Imagen</button>
+    </div>
+
+    <script>
+        const webcam = document.getElementById("webcam");
+        const predictionText = document.getElementById("prediction");
+        const captureBtn = document.getElementById("captureBtn");
+
+        // Access webcam
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then((stream) => {
+                webcam.srcObject = stream;
+            })
+            .catch((err) => {
+                console.log("Error accessing webcam: ", err);
+                predictionText.innerText = "No se pudo acceder a la cámara.";
+            });
+
+        captureBtn.addEventListener("click", captureImage);
+
+        function captureImage() {
+            const canvas = document.createElement("canvas");
+            const context = canvas.getContext("2d");
+            canvas.width = webcam.videoWidth;
+            canvas.height = webcam.videoHeight;
+            context.drawImage(webcam, 0, 0, canvas.width, canvas.height);
+            canvas.toBlob((blob) => {
+                const formData = new FormData();
+                formData.append("image", blob);
+
+                // Send image to Flask server for prediction
+                fetch("/predict", {
+                    method: "POST",
+                    body: formData
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        predictionText.innerText = data.result;
+                    })
+                    .catch(err => {
+                        console.log("Error in prediction: ", err);
+                        predictionText.innerText = "Error al realizar la predicción.";
+                    });
+            }, "image/jpeg");
+        }
+    </script>
+</body>
+
+</html>

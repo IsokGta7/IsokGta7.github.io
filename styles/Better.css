@@ -1,0 +1,222 @@
+/* ===== BODY ===== */
+body {
+    font-family: Arial, sans-serif;
+    background: linear-gradient(135deg, #1e1e1e, #292929);
+    /* Fondo con gradiente */
+    margin: 0;
+    color: #fff;
+}
+
+/* ===== HEADER Y FOOTER ===== */
+header,
+footer {
+    background-color: rgba(0, 0, 0, 0.85);
+    /* Fondo oscuro */
+    padding: 1rem;
+    text-align: center;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+    /* Sombra para header y footer */
+}
+
+/* ===== NAVBAR ===== */
+nav {
+    background: linear-gradient(to right, #0056b3, #007bff);
+    /* Fondo degradado azul */
+}
+
+nav ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+nav ul li {
+    display: inline-block;
+    margin: 0 10px;
+}
+
+nav ul li a {
+    color: #fff;
+    /* Color texto menú */
+    text-decoration: none;
+    font-weight: bold;
+    transition: color 0.3s, background-color 0.3s;
+    padding: 8px 15px;
+    border-radius: 5px;
+}
+
+nav ul li a:hover {
+    color: #ffcc00;
+    background-color: rgba(0, 0, 0, 0.3);
+    /* Cambia el fondo al pasar el ratón */
+}
+
+/* ===== MAIN ===== */
+main {
+    padding: 2rem;
+    text-align: center;
+}
+
+/* ===== TITULOS ===== */
+h1,
+h2 {
+    margin: 0.5rem 0;
+    font-family: 'Roboto', sans-serif;
+    font-weight: 400;
+    color: #ffcc00;
+    /* Títulos resaltados */
+}
+
+/* ===== VIDEO & CANVAS ===== */
+video,
+canvas {
+    margin: 10px 0;
+    border-radius: 8px;
+    /* Bordes redondeados */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    /* Sombra para resaltar */
+}
+
+/* ===== BOTONES ===== */
+button,
+.button {
+    padding: 12px 25px;
+    background: linear-gradient(to right, #007bff, #0056b3);
+    /* Gradiente en botones */
+    border: none;
+    border-radius: 5px;
+    color: white;
+    font-size: 1.2em;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+    box-shadow: 0 4px 10px rgba(0, 123, 255, 0.2);
+    /* Sombra */
+}
+
+button:hover,
+.button:hover {
+    background: linear-gradient(to right, #0056b3, #003d80);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(0, 123, 255, 0.4);
+    /* Sombra animada */
+}
+
+/* ===== SELECT ===== */
+select {
+    padding: 12px;
+    border: 1px solid #007bff;
+    border-radius: 5px;
+    background-color: rgba(255, 255, 255, 0.1);
+    color: white;
+    font-size: 1em;
+    margin: 15px 0;
+    transition: border-color 0.3s ease, background-color 0.3s ease;
+}
+
+select:hover,
+select:focus {
+    border-color: #ffcc00;
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* ===== INPUT FILE ===== */
+input[type="file"] {
+    margin: 15px 0;
+    padding: 10px;
+    border: 1px solid #007bff;
+    border-radius: 5px;
+    background-color: rgba(255, 255, 255, 0.1);
+    color: white;
+    font-size: 1em;
+    cursor: pointer;
+    transition: border-color 0.3s ease, background-color 0.3s ease;
+}
+
+input[type="file"]:hover {
+    border-color: #ffcc00;
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* ===== RESULTADOS ===== */
+#predictionResult,
+.prediction-text,
+.result-text {
+    margin-top: 20px;
+    font-size: 1.5em;
+    font-weight: bold;
+    color: #ffcc00;
+    /* Color dorado para resultados destacados */
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+/* ===== FOOTER ===== */
+footer {
+    margin-top: 40px;
+    font-size: 0.9em;
+    color: #bbb;
+    /* Color gris suave */
+    text-transform: uppercase;
+}
+
+/* ===== CONTENEDORES ===== */
+.upload-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.chart-container {
+    width: 100%;
+    max-width: 600px;
+    /* Ancho máximo */
+    margin: auto;
+    padding: 20px;
+    border: 1px solid #444;
+    border-radius: 8px;
+    background-color: #1e1e1e;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    /* Sombra */
+}
+
+/* ANIMACIONES */
+@keyframes gradient {
+    0% {
+        background-position: 0% 50%;
+    }
+
+    50% {
+        background-position: 100% 50%;
+    }
+
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+header,
+footer {
+    background: linear-gradient(135deg, #1e1e1e, #292929);
+    background-size: 400% 400%;
+    animation: gradient 15s ease infinite;
+}
+
+/* ===== RESPONSIVIDAD ===== */
+@media only screen and (max-width: 600px) {
+    #webcam_feed {
+        max-width: 100%;
+        height: auto;
+    }
+
+    nav ul li {
+        display: block;
+        margin: 5px 0;
+    }
+
+    nav ul li a {
+        display: inline-block;
+        width: 100%;
+        text-align: center;
+    }
+}

@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BTC/USDT Predictions</title>
+    <link rel="stylesheet" href="/eirodriguezt/styles/style.css"> <!-- Link to external stylesheet -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+</head>
+
+<body>
+    <header>
+        <nav>
+            <ul>
+                <li><a href="/eirodriguezt/index.html">Inicio</a></li>
+            </ul>
+        </nav>
+        <h1>BTC/USDT Predictions</h1>
+    </header>
+    <main>
+        <!-- First Chart: Prediction -->
+        <div class="chart-container">
+            <h2>Prediction Chart</h2>
+            <canvas id="predictionChart" width="400" height="200"></canvas>
+        </div>
+        <!-- Second Chart: Real vs Predicted Comparison -->
+        <div class="chart-container">
+            <h2>Real vs. Predicted Comparison</h2>
+            <canvas id="comparisonChart" width="400" height="200"></canvas>
+        </div>
+    </main>
+    <footer>
+        <p>&copy; Predicción de BTC. Ezequiel Isaac Rodriguez Tenorio.</p>
+    </footer>
+
+    <script>
+        // Load the TensorFlow.js model
+        let model;
+        let dataMean = null;
+        let dataStd = null;
+
+        tf.loadLayersModel('/eirodriguezt/assets/bitcoin/model_btc.json').then(loadedModel => {
+            model = loadedModel;
+            console.log('Model loaded successfully!');
+        }).catch(error => {
+            console.error('Error loading the model:', error);
+        });
+
+        // Initialize Prediction Chart
+        const predictionCtx = document.getElementById('predictionChart').getContext('2d');
+        const predictionChart = new Chart(predictionCtx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [
+                    {
+                        label: 'Prediction',
+                        data: [],
+                        borderColor: 'red',
+                        fill: false
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    x: {
+                        type: 'time',
+                        time: {
+                            unit: 'second' // Cambiado a segundo para actualizar más frecuentemente
+                        }
+                    }
+                }
+            }
+        });
+
+        // Initialize Real vs Predicted Comparison Chart
+        const comparisonCtx = document.getElementById('comparisonChart').getContext('2d');
+        const comparisonChart = new Chart(comparisonCtx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [
+                    {
+                        label: 'Real Value',
+                        data: [],
+                        borderColor: 'blue',
+                        fill: false
+                    },
+                    {
+                        label: 'Prediction',
+                        data: [],
+                        borderColor: 'red',
+                        fill: false
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    x: {
+                        type: 'time',
+                        time: {
+                            unit: 'second' // Cambiado a segundo para el mismo propósito
+                        }
+                    }
+                }
+            }
+        });
+
+        // Buffer to hold the last 60 closing prices
+        let recentData = [];
+
+        async function fetchBinanceData() {
+            try {
+                const url = 'https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1m&limit=10';
+                const response = await fetch(url);
+                const data = await response.json();
+
+                // Extract relevant fields for prediction
+                const closingPrices = data.map(candle => parseFloat(candle[4]));
+
+                // Ensure valid data
+                if (!closingPrices.every(price => isFinite(price))) {
+                    console.error('Invalid price data detected');
+                    return [];
+                }
+
+                // Calculate mean and std for normalization if not calculated yet
+                if (dataMean === null || dataStd === null) {
+                    const tensorPrices = tf.tensor(closingPrices);
+                    dataMean = tensorPrices.mean().arraySync();
+                    dataStd = tensorPrices.sub(dataMean).square().mean().sqrt().arraySync();
+                }
+
+                return closingPrices;
+            } catch (error) {
+                console.error('Error fetching Binance data:', error);
+                return [];
+            }
+        }
+
+        // Preprocess data and make predictions
+        async function updateCharts() {
+            const closingPrices = await fetchBinanceData();
+
+            if (closingPrices.length === 0) {
+                return; // Stop if there's an error or no valid data
+            }
+
+            // Process the latest price
+            recentData = recentData.concat(closingPrices);
+
+            // Limitar el tamaño del buffer a 60 elementos
+            if (recentData.length > 60) {
+                recentData = recentData.slice(recentData.length - 60); // Mantener solo los últimos 60 precios
+            }
+
+            // Preparate el tensor de entrada solo si tenemos al menos 60 precios
+            if (recentData.length < 60) {
+                return; // No podemos hacer una predicción todavía
+            }
+
+            const inputTensor = tf.tensor(recentData).sub(dataMean).div(dataStd).reshape([1, 60, 1]);
+
+            try {
+                const predictionTensor = model.predict(inputTensor);
+                const normalizedPrediction = predictionTensor.dataSync()[0]; // Valor de predicción única
+                const prediction = normalizedPrediction * dataStd + dataMean; // Desnormalizar
+
+                // Obtener timestamp actual
+                const currentTimestamp = new Date();
+
+                // Actualiza las gráficas con los nuevos datos
+                predictionChart.data.labels.push(currentTimestamp);
+                predictionChart.data.datasets[0].data.push(prediction);
+                predictionChart.update();
+
+                comparisonChart.data.labels.push(currentTimestamp);
+                comparisonChart.data.datasets[0].data.push(recentData[recentData.length - 1]); // Valor real
+                comparisonChart.data.datasets[1].data.push(prediction); // Valor predicho
+                comparisonChart.update();
+
+                // Limitar el número de puntos de datos en la gráfica
+                if (predictionChart.data.labels.length > 100) {
+                    predictionChart.data.labels.shift();
+                    predictionChart.data.datasets[0].data.shift();
+                }
+                if (comparisonChart.data.labels.length > 100) {
+                    comparisonChart.data.labels.shift();
+                    comparisonChart.data.datasets[0].data.shift();
+                    comparisonChart.data.datasets[1].data.shift();
+                }
+            } catch (error) {
+                console.error('Error in prediction:', error);
+            }
+        }
+
+        // Fetch the data immediately on page load, and then every 10 seconds
+        setInterval(updateCharts, 10000); // Ahora actualizado cada 10 segundos
+    </script>
+
+</body>
+
+</html>
