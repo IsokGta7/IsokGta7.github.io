@@ -1,161 +1,234 @@
 ---
 layout: default
-title: Flowers
+title: Clasificador de flores
+description: Clasificación ligera con TensorFlow.js usando cámara o carga de imagen.
 permalink: /flowers/
 ---
-<!DOCTYPE html>
-<html lang="es">
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Clasificador de Flores</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
-    <link rel="stylesheet" href="/styles/style.css">
-</head>
+<section class="demo-card">
+  <div class="section-title">
+    <div>
+      <p class="eyebrow" data-i18n-en="CNN · Vision">CNN · Visión</p>
+      <h2 data-i18n-en="Real-time flower classifier">Clasificador de flores en tiempo real</h2>
+      <p class="subtle-text" data-i18n-en="Optimized for camera or manual upload with client-side preprocessing.">Optimizado para cámara o carga manual con preprocesamiento en cliente.</p>
+    </div>
+    <span id="flowers-status" class="status-pill" data-i18n-en="Loading model...">Cargando modelo...</span>
+  </div>
 
-<body>
-    <header>
-        <nav>
-            <ul>
-                <li><a href="/index.html">Inicio</a></li>
-            </ul>
-        </nav>
-    </header>
+  <div class="summary-grid">
+    <div class="summary-card">
+      <h3 data-i18n-en="How it works">Cómo funciona</h3>
+      <ul>
+        <li data-i18n-en="Captures video or image and resizes to 180x180 px.">Captura video o imagen y la reescala a 180x180 px.</li>
+        <li data-i18n-en="Normalizes 0-255 values to 0-1 and adds batch dimension.">Normaliza los valores 0-255 a rango 0-1 y agrega dimensión batch.</li>
+        <li data-i18n-en="CNN predicts five species and shows top-1 instantly.">La CNN predice entre cinco especies y muestra el top-1 al instante.</li>
+      </ul>
+    </div>
+    <div class="summary-card">
+      <h3 data-i18n-en="Usage tips">Consejos de uso</h3>
+      <ul>
+        <li data-i18n-en="Test with centered flowers and good lighting.">Prueba con flores centradas y buena iluminación.</li>
+        <li data-i18n-en="Switch camera (front/back) depending on your device.">Cambia la cámara (frontal/trasera) según tu dispositivo.</li>
+        <li data-i18n-en="Use “Stop” to release the camera and browser resources.">Usa “Detener” para liberar la cámara y recursos del navegador.</li>
+      </ul>
+    </div>
+  </div>
 
-    <main>
-        <h1>Clasificador de Flores en Tiempo Real</h1>
-        <button onclick="startCamera()">Usar Cámara</button>
-        <select id="cameraOptions">
-            <option value="user">Cámara Frontal</option>
-            <option value="environment">Cámara Trasera</option>
-        </select>
-        <video id="video" width="180" height="180" autoplay></video>
-        <canvas id="canvas" width="180" height="180" style="display:none;"></canvas>
-        <input type="file" accept="image/*" onchange="uploadImage(event)">
-        <h2 id="predictionResult">Esperando predicción...</h2>
-        <canvas id="processedCanvas" width="180" height="180" style="border: 1px solid #fff;"></canvas>
-        <h3>Imagen Preprocesada</h3>
-    </main>
+  <div class="controls">
+    <button id="start-camera" class="button" data-i18n-en="Use camera">Usar cámara</button>
+    <button id="stop-camera" class="button secondary" disabled data-i18n-en="Stop">Detener</button>
+    <label class="button secondary" for="flower-file" data-i18n-en="Upload image">Subir imagen</label>
+    <input id="flower-file" type="file" accept="image/*" style="display:none;">
+    <select id="camera-facing">
+      <option value="user" data-i18n-en="Front camera">Cámara frontal</option>
+      <option value="environment" data-i18n-en="Rear camera">Cámara trasera</option>
+    </select>
+  </div>
 
-    <footer>
-        <p>&copy; Clasificador Flores. Ezequiel Isaac Rodriguez Tenorio</p>
-    </footer>
+  <div class="demo-grid">
+    <div class="video-panel">
+      <div class="media-wrapper">
+        <video id="flower-video" width="240" height="240" autoplay playsinline muted></video>
+      </div>
+      <p class="subtle-text" data-i18n-en="Live video">Video en vivo</p>
+    </div>
+    <div class="canvas-panel">
+      <div class="canvas-wrapper">
+        <canvas id="flower-preview" width="240" height="240"></canvas>
+      </div>
+      <p class="subtle-text" data-i18n-en="Preprocessed image">Imagen preprocesada</p>
+    </div>
+  </div>
 
-    <script>
-        let model;
-        let videoStream;
-        let predictionInterval;
-        const classNames = ['Margarita', 'Diente de leon', 'Rosas', 'Girasoles', 'Tulipanes']; // Nombres de clases adecuados
+  <p id="flower-output" class="prediction-output">Esperando imagen...</p>
+  <p class="note" data-i18n-en="Keep lighting stable for more consistent predictions. The model normalizes and resizes to 180x180.">Mantén la iluminación estable para predicciones más consistentes. El modelo aplica normalización y redimensionado a 180x180.</p>
+</section>
 
-        async function loadModel() {
-            try {
-                console.log("Cargando modelo...");
-                model = await tf.loadLayersModel('/assets/flowers/model_flowers.json');
-                console.log("Modelo cargado correctamente.");
-                return model;
-            } catch (error) {
-                console.error("Error al cargar el modelo:", error);
-            }
-        }
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const video = document.getElementById('flower-video');
+    const preview = document.getElementById('flower-preview');
+    const fileInput = document.getElementById('flower-file');
+    const startBtn = document.getElementById('start-camera');
+    const stopBtn = document.getElementById('stop-camera');
+    const facingSelect = document.getElementById('camera-facing');
+    const statusPill = document.getElementById('flowers-status');
+    const output = document.getElementById('flower-output');
 
-        async function startCamera() {
-            const model = await loadModel(); // Cargar el modelo aquí
+    let model;
+    let stream;
+    let rafId;
+    let lastPredictionIndex = null;
 
-            const video = document.getElementById("video");
-            const cameraOptions = document.getElementById("cameraOptions").value;
+    const copy = {
+      status: {
+        loading: { es: 'Cargando modelo...', en: 'Loading model...' },
+        ready: { es: 'Modelo listo', en: 'Model ready' },
+        cameraError: { es: 'Permiso de cámara requerido', en: 'Camera permission required' },
+        error: { es: 'Error al cargar modelo', en: 'Error loading model' }
+      },
+      output: {
+        waiting: { es: 'Esperando imagen...', en: 'Waiting for image...' },
+        prediction: { es: 'Predicción', en: 'Prediction' }
+      },
+      classes: [
+        { es: 'Margarita', en: 'Daisy' },
+        { es: 'Diente de león', en: 'Dandelion' },
+        { es: 'Rosa', en: 'Rose' },
+        { es: 'Girasol', en: 'Sunflower' },
+        { es: 'Tulipán', en: 'Tulip' }
+      ]
+    };
 
-            if (videoStream) {
-                videoStream.getTracks().forEach(track => track.stop());
-            }
+    function translate(map) {
+      return (window.SiteI18n && window.SiteI18n.translate) ? window.SiteI18n.translate(map) : (map?.es || '');
+    }
 
-            navigator.mediaDevices.getUserMedia({
-                video: { facingMode: cameraOptions }
-            }).then(stream => {
-                videoStream = stream;
-                video.srcObject = stream;
-                video.style.display = "block";
+    function setStatus(key, state = '') {
+      const text = translate(copy.status[key] || { es: key, en: key });
+      statusPill.textContent = text;
+      statusPill.className = `status-pill ${state}`.trim();
+    }
 
-                // Iniciar predicciones en tiempo real
-                if (predictionInterval) clearInterval(predictionInterval);
-                predictionInterval = setInterval(() => predict(video, model), 2000); // Intervalo de 2 segundos
-            }).catch(error => {
-                console.error("Error al acceder a la cámara:", error);
-                alert("No se pudo acceder a la cámara.");
-            });
-        }
+    function renderOutputWaiting() {
+      output.textContent = translate(copy.output.waiting);
+    }
 
-        async function predict(video, model) {
-            const canvas = document.getElementById("canvas");
-            const ctx = canvas.getContext("2d");
+    function renderOutputPrediction(index) {
+      lastPredictionIndex = index;
+      const label = translate(copy.output.prediction);
+      const className = translate(copy.classes[index]);
+      output.textContent = `${label}: ${className}`;
+    }
 
-            // Dibujar frame del video en el canvas
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    async function loadModel() {
+      try {
+        await tf.ready();
+        model = await tf.loadLayersModel('{{ '/assets/flowers/model_flowers.json' | relative_url }}');
+        setStatus('ready', 'ready');
+      } catch (error) {
+        console.error(error);
+        setStatus('error', 'error');
+      }
+    }
 
-            // Crear tensor de imagen sin normalización adicional
-            const imgTensor = tf.browser.fromPixels(canvas).expandDims(0);
+    function stopCamera() {
+      if (rafId) cancelAnimationFrame(rafId);
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+        stream = null;
+      }
+      video.srcObject = null;
+      startBtn.disabled = false;
+      stopBtn.disabled = true;
+    }
 
-            // Visualizar imagen preprocesada
-            const processedCanvas = document.getElementById("processedCanvas");
-            const processedCtx = processedCanvas.getContext("2d");
-            processedCtx.clearRect(0, 0, processedCanvas.width, processedCanvas.height);
-            processedCtx.drawImage(video, 0, 0, processedCanvas.width, processedCanvas.height);
+    async function startCamera() {
+      if (!model) await loadModel();
+      stopCamera();
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: facingSelect.value } }
+        });
+        video.srcObject = stream;
+        startBtn.disabled = true;
+        stopBtn.disabled = false;
+        predictFrame();
+      } catch (error) {
+        console.error('No se pudo acceder a la cámara', error);
+        setStatus('cameraError', 'error');
+      }
+    }
 
-            try {
-                const predictions = await model.predict(imgTensor).data();
-                const predictedClass = predictions.indexOf(Math.max(...predictions));
-                const flowerName = classNames[predictedClass];
+    function preprocess(source) {
+      return tf.tidy(() => {
+        const input = tf.browser.fromPixels(source);
+        const resized = tf.image.resizeBilinear(input, [180, 180]);
+        const normalized = resized.toFloat().div(255);
+        return normalized.expandDims(0);
+      });
+    }
 
-                document.getElementById("predictionResult").innerText = `Predicción: ${flowerName}`;
-                console.log("Predicción obtenida:", flowerName);
-            } catch (predictError) {
-                console.error("Error durante la predicción:", predictError);
-                document.getElementById("predictionResult").innerText = "Error en la predicción.";
-            }
-        }
+    function renderPreview(source) {
+      const ctx = preview.getContext('2d');
+      ctx.clearRect(0, 0, preview.width, preview.height);
+      ctx.drawImage(source, 0, 0, preview.width, preview.height);
+    }
 
-        function uploadImage(event) {
-            const file = event.target.files[0];
-            const reader = new FileReader();
+    async function predictFrame() {
+      if (!model || !video.srcObject) return;
+      rafId = requestAnimationFrame(predictFrame);
+      const input = preprocess(video);
+      const prediction = model.predict(input);
+      const data = await prediction.data();
+      const idx = data.indexOf(Math.max(...data));
+      renderOutputPrediction(idx);
+      renderPreview(video);
+      tf.dispose([input, prediction]);
+    }
 
-            reader.onload = function (e) {
-                const img = new Image();
-                img.src = e.target.result;
+    function handleUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = ({ target }) => {
+        const img = new Image();
+        img.onload = async () => {
+          if (!model) await loadModel();
+          const input = preprocess(img);
+          const prediction = model.predict(input);
+          const data = await prediction.data();
+          const idx = data.indexOf(Math.max(...data));
+          renderOutputPrediction(idx);
+          renderPreview(img);
+          tf.dispose([input, prediction]);
+        };
+        img.src = target.result;
+      };
+      reader.readAsDataURL(file);
+    }
 
-                img.onload = function () {
-                    const canvas = document.getElementById("canvas");
-                    const ctx = canvas.getContext("2d");
+    function refreshLanguageDependentText() {
+      setStatus(model ? 'ready' : 'loading', model ? 'ready' : '');
+      if (lastPredictionIndex !== null) {
+        renderOutputPrediction(lastPredictionIndex);
+      } else {
+        renderOutputWaiting();
+      }
+    }
 
-                    // Dibujar la imagen cargada en el canvas
-                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    startBtn.addEventListener('click', startCamera);
+    stopBtn.addEventListener('click', stopCamera);
+    fileInput.addEventListener('change', handleUpload);
+    facingSelect.addEventListener('change', () => {
+      if (stream) startCamera();
+    });
 
-                    // Crear tensor de imagen sin normalización adicional
-                    const imgTensor = tf.browser.fromPixels(canvas).expandDims(0);
+    window.addEventListener('beforeunload', stopCamera);
+    loadModel();
+    renderOutputWaiting();
 
-                    // Predecir la imagen cargada
-                    predictFromImage(imgTensor);
-                };
-            };
-
-            reader.readAsDataURL(file);
-        }
-
-        async function predictFromImage(tensor) {
-            try {
-                const predictions = await model.predict(tensor).data();
-                const predictedClass = predictions.indexOf(Math.max(...predictions));
-                const flowerName = classNames[predictedClass];
-
-                document.getElementById("predictionResult").innerText = `Predicción: ${flowerName}`;
-                console.log("Predicción obtenida:", flowerName);
-            } catch (predictError) {
-                console.error("Error durante la predicción:", predictError);
-                document.getElementById("predictionResult").innerText = "Error en la predicción.";
-            }
-        }
-
-        window.onload = startCamera;
-    </script>
-</body>
-
-</html>
+    document.addEventListener('language:change', refreshLanguageDependentText);
+  });
+</script>

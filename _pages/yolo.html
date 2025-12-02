@@ -1,188 +1,205 @@
 ---
 layout: default
-title: Object detection using YOLO
-permalink: /YOLO/
+title: Detección de objetos YOLO
+description: Inferencia en navegador con modelo YOLOv8 optimizado en TensorFlow.js.
+permalink: /yolo/
 ---
-<!DOCTYPE html>
-<html lang="en">
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Object detection using YOLO</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs/dist/tf.min.js"></script>
-</head>
-
-<body>
-    <div id="header">
-        <h1>YOLOv8 Object Detection Example</h1>
-        <p>Serving : <code class="code">yolov8n.tfjs</code>, Size : <code class="code">640x640</code></p>
+<section class="demo-card">
+  <div class="section-title">
+    <div>
+      <p class="eyebrow" data-i18n-en="YOLOv8 · Vision">YOLOv8 · Visión</p>
+      <h2 data-i18n-en="Live object detection">Detección de objetos en vivo</h2>
+      <p class="subtle-text" data-i18n-en="Light stream at 640x640 with non-max suppression and dynamic scaling.">Stream ligero a 640x640 con supresión no máxima y escalado dinámico.</p>
     </div>
+    <span id="yolo-status" class="status-pill" data-i18n-en="Loading model...">Cargando modelo...</span>
+  </div>
 
-    <header>
-        <nav class="nav-wrapper">
-            <div class="container">
-                <ul>
-                    <il><button id="runInference">Run Inference</button></il>
-                    <il><button id="stopInference">Stop Inference</button></il>
-                </ul>
-            </div>
-        </nav>
-    </header>
-
-    <div id="main" style="position: relative;">
-        <video id="webcam" autoplay playsinline width="640" height="480"></video>
-        <canvas id="outputCanvas" width="640" height="480"></canvas>
+  <div class="summary-grid">
+    <div class="summary-card">
+      <h3 data-i18n-en="How it works">Cómo funciona</h3>
+      <ul>
+        <li data-i18n-en="Resizes camera frames to 640x640 and normalizes pixels.">Redimensiona frames de cámara a 640x640 y normaliza píxeles.</li>
+        <li data-i18n-en="Runs YOLOv8 in WebGL and gets boxes plus classes.">Ejecuta el modelo YOLOv8 en WebGL y obtiene cajas + clases.</li>
+        <li data-i18n-en="Applies non-max suppression and draws overlays on canvas.">Aplica supresión no máxima y dibuja overlays en canvas.</li>
+      </ul>
     </div>
-    
+    <div class="summary-card">
+      <h3 data-i18n-en="Recommendations">Recomendaciones</h3>
+      <ul>
+        <li data-i18n-en="Use good lighting and avoid sudden movement.">Usa buena iluminación y evita movimiento brusco.</li>
+        <li data-i18n-en="If performance drops, lower the device camera resolution.">Si el rendimiento baja, reduce la resolución de la cámara del dispositivo.</li>
+        <li data-i18n-en="Stop detection before switching tabs to free GPU.">Detén la detección antes de cambiar de pestaña para liberar GPU.</li>
+      </ul>
+    </div>
+  </div>
 
-    <script>
-        const classNames = {
-            0: "person", 1: "bicycle", 2: "car", 3: "motorcycle", 4: "airplane", 5: "bus", 6: "train", 7: "truck",
-            8: "boat", 9: "traffic light", 10: "fire hydrant", 11: "stop sign", 12: "parking meter", 13: "bench",
-            14: "bird", 15: "cat", 16: "dog", 17: "horse", 18: "sheep", 19: "cow", 20: "elephant", 21: "bear",
-            22: "zebra", 23: "giraffe", 24: "backpack", 25: "umbrella", 26: "handbag", 27: "tie", 28: "suitcase",
-            29: "frisbee", 30: "skis", 31: "snowboard", 32: "sports ball", 33: "kite", 34: "baseball bat",
-            35: "baseball glove", 36: "skateboard", 37: "surfboard", 38: "tennis racket", 39: "bottle",
-            40: "wine glass", 41: "cup", 42: "fork", 43: "knife", 44: "spoon", 45: "bowl", 46: "banana",
-            47: "apple", 48: "sandwich", 49: "orange", 50: "broccoli", 51: "carrot", 52: "hot dog", 53: "pizza",
-            54: "donut", 55: "cake", 56: "chair", 57: "couch", 58: "potted plant", 59: "bed", 60: "dining table",
-            61: "toilet", 62: "tv", 63: "laptop", 64: "mouse", 65: "remote", 66: "keyboard", 67: "cell phone",
-            68: "microwave", 69: "oven", 70: "toaster", 71: "sink", 72: "refrigerator", 73: "book", 74: "clock",
-            75: "vase", 76: "scissors", 77: "teddy bear", 78: "hair drier", 79: "toothbrush"
-        };
+  <div class="controls">
+    <button id="yolo-start" class="button" data-i18n-en="Start detection">Iniciar detección</button>
+    <button id="yolo-stop" class="button secondary" disabled data-i18n-en="Stop">Detener</button>
+  </div>
 
-        const TARGET_WIDTH = 640;
-        const TARGET_HEIGHT = 640;
-        let model;
-        let isRunning = false;
-        let inferenceInterval;
+  <div class="video-panel">
+    <div class="media-wrapper" style="position:relative;">
+      <video id="yolo-video" autoplay playsinline muted width="640" height="480"></video>
+      <canvas id="yolo-canvas" width="640" height="480" style="position:absolute; inset:0;"></canvas>
+    </div>
+    <p class="subtle-text" data-i18n-en="Enable the camera and watch detections.">Activa la cámara y observa las detecciones.</p>
+  </div>
+</section>
 
-        async function loadModel() {
-            tf.setBackend('webgl');
-            model = await tf.loadGraphModel('/assets/YOLO/YOLO_model.json');
-        }
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs/dist/tf.min.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const video = document.getElementById('yolo-video');
+    const canvas = document.getElementById('yolo-canvas');
+    const statusPill = document.getElementById('yolo-status');
+    const startBtn = document.getElementById('yolo-start');
+    const stopBtn = document.getElementById('yolo-stop');
 
-        async function runModel(tensor) {
-            if (!model) await loadModel();
-            return model.predict(tensor);
-        }
+    const TARGET = 640;
+    let model;
+    let stream;
+    let rafId;
+    let statusKey = 'loading';
+    let statusState = '';
 
-        async function processWebcamFrame() {
-            const video = document.getElementById('webcam');
-            const tensor = await webcamToTensor(video);
-            const startTime = performance.now();
-            const predictions = await runModel(tensor);
-            const endTime = performance.now();
-            const inferenceTime = endTime - startTime;
-            console.log(`Inference Time: ${inferenceTime.toFixed(2)} ms`);
-            const detections = processPredictions(predictions, classNames);
-            await drawBoundingBoxes(video, detections);
-        }
+    const copy = {
+      status: {
+        loading: { es: 'Cargando modelo...', en: 'Loading model...' },
+        ready: { es: 'Modelo listo', en: 'Model ready' },
+        cameraError: { es: 'Permiso de cámara requerido', en: 'Camera permission required' },
+        error: { es: 'Error al cargar modelo', en: 'Error loading model' }
+      }
+    };
 
-        function extractSelectedPredictions(indices, boxes, labels, classNames) {
-            return indices.map(i => {
-                const box = boxes.slice([i, 0], [1, -1]).squeeze().arraySync();
-                const label = labels.slice([i], [1]).arraySync()[0];
-                return { box, label: classNames[label] };
-            });
-        }
+    const classNames = {
+      0: "person", 1: "bicycle", 2: "car", 3: "motorcycle", 4: "airplane", 5: "bus", 6: "train", 7: "truck",
+      8: "boat", 9: "traffic light", 10: "fire hydrant", 11: "stop sign", 12: "parking meter", 13: "bench",
+      14: "bird", 15: "cat", 16: "dog", 17: "horse", 18: "sheep", 19: "cow", 20: "elephant", 21: "bear",
+      22: "zebra", 23: "giraffe", 24: "backpack", 25: "umbrella", 26: "handbag", 27: "tie", 28: "suitcase",
+      29: "frisbee", 30: "skis", 31: "snowboard", 32: "sports ball", 33: "kite", 34: "baseball bat",
+      35: "baseball glove", 36: "skateboard", 37: "surfboard", 38: "tennis racket", 39: "bottle",
+      40: "wine glass", 41: "cup", 42: "fork", 43: "knife", 44: "spoon", 45: "bowl", 46: "banana",
+      47: "apple", 48: "sandwich", 49: "orange", 50: "broccoli", 51: "carrot", 52: "hot dog", 53: "pizza",
+      54: "donut", 55: "cake", 56: "chair", 57: "couch", 58: "potted plant", 59: "bed", 60: "dining table",
+      61: "toilet", 62: "tv", 63: "laptop", 64: "mouse", 65: "remote", 66: "keyboard", 67: "cell phone",
+      68: "microwave", 69: "oven", 70: "toaster", 71: "sink", 72: "refrigerator", 73: "book", 74: "clock",
+      75: "vase", 76: "scissors", 77: "teddy bear", 78: "hair drier", 79: "toothbrush"
+    };
 
-        async function webcamToTensor(videoElement) {
-            const canvas = document.createElement('canvas');
-            canvas.width = TARGET_WIDTH;
-            canvas.height = TARGET_HEIGHT;
-            const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    function translate(map) {
+      return (window.SiteI18n && window.SiteI18n.translate) ? window.SiteI18n.translate(map) : (map?.es || '');
+    }
 
-            ctx.drawImage(videoElement, 0, 0, TARGET_WIDTH, TARGET_HEIGHT);
-            const imageData = ctx.getImageData(0, 0, TARGET_WIDTH, TARGET_HEIGHT);
-            const tensor = tf.browser.fromPixels(imageData);
-            return tf.cast(tensor, 'float32').div(tf.scalar(255)).expandDims(0);
-        }
+    function setStatus(key, state = '') {
+      statusKey = key;
+      statusState = state;
+      const text = translate(copy.status[key] || { es: key, en: key });
+      statusPill.textContent = text;
+      statusPill.className = `status-pill ${state}`.trim();
+    }
 
-        function processPredictions(predictions, classNames) {
-            return tf.tidy(() => {
-                const transRes = predictions.transpose([0, 2, 1]);
-                const boxes = calculateBoundingBoxes(transRes);
-                const [scores, labels] = calculateScoresAndLabels(transRes, classNames);
-                const indices = tf.image.nonMaxSuppression(boxes, scores, predictions.shape[2], 0.45, 0.2).arraySync();
-                return extractSelectedPredictions(indices, boxes, labels, classNames);
-            });
-        }
+    async function loadModel() {
+      try {
+        await tf.ready();
+        await tf.setBackend('webgl');
+        model = await tf.loadGraphModel('{{ '/assets/YOLO/YOLO_model.json' | relative_url }}');
+        setStatus('ready', 'ready');
+      } catch (error) {
+        console.error(error);
+        setStatus('error', 'error');
+      }
+    }
 
-        function calculateBoundingBoxes(transRes) {
-            const [xCenter, yCenter, width, height] = [
-                transRes.slice([0, 0, 0], [-1, -1, 1]),
-                transRes.slice([0, 0, 1], [-1, -1, 1]),
-                transRes.slice([0, 0, 2], [-1, -1, 1]),
-                transRes.slice([0, 0, 3], [-1, -1, 1])
-            ];
+    function stopDetection() {
+      if (rafId) cancelAnimationFrame(rafId);
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+        stream = null;
+      }
+      video.srcObject = null;
+      startBtn.disabled = false;
+      stopBtn.disabled = true;
+    }
 
-            const topLeftX = tf.sub(xCenter, tf.div(width, 2));
-            const topLeftY = tf.sub(yCenter, tf.div(height, 2));
-            return tf.concat([topLeftX, topLeftY, width, height], 2).squeeze();
-        }
+    async function startDetection() {
+      if (!model) await loadModel();
+      stopDetection();
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } } });
+        video.srcObject = stream;
+        startBtn.disabled = true;
+        stopBtn.disabled = false;
+        renderLoop();
+      } catch (error) {
+        console.error('Camera permission needed', error);
+        setStatus('cameraError', 'error');
+      }
+    }
 
-        function calculateScoresAndLabels(transRes, classNames) {
-            const rawScores = transRes.slice([0, 0, 4], [-1, -1, Object.keys(classNames).length]).squeeze(0);
-            return [rawScores.max(1), rawScores.argMax(1)];
-        }
+    function preprocessFrame() {
+      return tf.tidy(() => {
+        const frame = tf.browser.fromPixels(video);
+        const resized = tf.image.resizeBilinear(frame, [TARGET, TARGET]);
+        const normalized = resized.div(255.0);
+        const expanded = normalized.expandDims(0);
+        frame.dispose();
+        return expanded;
+      });
+    }
 
-        async function drawBoundingBoxes(imageElement, detections) {
-            const canvas = document.getElementById('outputCanvas');
-            const ctx = canvas.getContext('2d', { willReadFrequently: true });
-            canvas.width = imageElement.width;
-            canvas.height = imageElement.height;
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+    function drawDetections(detections) {
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.strokeStyle = '#22d3ee';
+      ctx.lineWidth = 2;
+      ctx.font = '14px Inter';
+      ctx.fillStyle = 'rgba(17, 94, 89, 0.8)';
 
-            const resizeScale = Math.min(TARGET_WIDTH / canvas.width, TARGET_HEIGHT / canvas.height);
-            const dx = (TARGET_WIDTH - canvas.width * resizeScale) / 2;
-            const dy = (TARGET_HEIGHT - canvas.height * resizeScale) / 2;
+      detections.forEach(det => {
+        const [x, y, w, h, score, classId] = det;
+        ctx.strokeRect(x, y, w, h);
+        const label = `${classNames[classId]} ${(score * 100).toFixed(1)}%`;
+        const textWidth = ctx.measureText(label).width;
+        ctx.fillRect(x, y - 18, textWidth + 8, 20);
+        ctx.fillStyle = '#0b1222';
+        ctx.fillText(label, x + 4, y - 4);
+        ctx.fillStyle = 'rgba(17, 94, 89, 0.8)';
+      });
+    }
 
-            detections.forEach(({ box, label }) => {
-                const [x, y, width, height] = box;
-                ctx.strokeStyle = 'green';
-                ctx.lineWidth = 2;
-                ctx.strokeRect(x * resizeScale + dx, y * resizeScale + dy, width * resizeScale, height * resizeScale);
-                ctx.fillStyle = 'green';
-                ctx.font = '18px Arial';
-                ctx.fillText(label, x * resizeScale + dx, y * resizeScale + dy);
-            });
-        }
+    function processDetections(output) {
+      const [boxes, scores, classes, validDetections] = output.map(t => t.arraySync());
+      const detections = [];
+      for (let i = 0; i < validDetections[0]; i++) {
+        const [y1, x1, y2, x2] = boxes[0][i];
+        const width = (x2 - x1) * canvas.width;
+        const height = (y2 - y1) * canvas.height;
+        const x = x1 * canvas.width;
+        const y = y1 * canvas.height;
+        detections.push([x, y, width, height, scores[0][i], classes[0][i]]);
+      }
+      drawDetections(detections);
+      output.forEach(t => t.dispose());
+    }
 
-        function startInferenceLoop() {
-            inferenceInterval = setInterval(processWebcamFrame, 100);
-        }
+    async function renderLoop() {
+      if (!model || !video.srcObject) return;
+      rafId = requestAnimationFrame(renderLoop);
+      const input = preprocessFrame();
+      const result = await model.executeAsync(input);
+      processDetections(result);
+      input.dispose();
+    }
 
-        function stopInferenceLoop() {
-            clearInterval(inferenceInterval);
-        }
+    startBtn.addEventListener('click', startDetection);
+    stopBtn.addEventListener('click', stopDetection);
 
-        document.getElementById('runInference').addEventListener('click', () => {
-            if (!isRunning) {
-                isRunning = true;
-                startInferenceLoop();
-            }
-        });
+    window.addEventListener('beforeunload', stopDetection);
+    setStatus('loading');
+    loadModel();
 
-        document.getElementById('stopInference').addEventListener('click', () => {
-            if (isRunning) {
-                isRunning = false;
-                stopInferenceLoop();
-            }
-        });
-
-        async function setupWebcam() {
-            const video = document.getElementById('webcam');
-            const stream = await navigator.mediaDevices.getUserMedia({
-                video: true
-            });
-            video.srcObject = stream;
-        }
-
-        setupWebcam();
-    </script>
-</body>
-
-</html>
+    document.addEventListener('language:change', () => setStatus(statusKey, statusState));
+  });
+</script>

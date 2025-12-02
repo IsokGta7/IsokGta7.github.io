@@ -1,72 +1,52 @@
 <!DOCTYPE html>
 <html lang="es">
-
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <script src="/assets/Scripts/language.js"></script>
-  <script src="/assets/Scripts/navigation.js"></script>
   <title>{{ page.title }}</title>
-  <link rel="stylesheet" href="/styles/Better.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ '/styles/demos.css' | relative_url }}">
 </head>
-
-<body>
-  <header>
-    <h1 id="titulo">Mis Proyectos Principales</h1>
-    <nav>
-      <ul id="navList"></ul>
-    </nav>
-    <nav>
-      <ul>
-        <li><a href="#" onclick="changeLanguage('es')">Español</a></li>
-        <li><a href="#" onclick="changeLanguage('en')">Inglés</a></li>
-      </ul>
-    </nav>
+<body class="demo-body">
+  <header class="demo-header">
+    <div class="demo-container header__content">
+      <div>
+        <p class="eyebrow" data-i18n-en="TensorFlow.js · Applied AI · Interactive demos">TensorFlow.js · IA aplicada · Demos interactivas</p>
+        <h1 class="brand" data-i18n-en="Ezequiel Isaac Rodríguez Tenorio">Ezequiel Isaac Rodríguez Tenorio</h1>
+        <p class="lede" data-i18n-en="Optimization of in-browser prototypes, lightweight deployments, and fast model validation.">Optimización de prototipos en navegador, despliegues ligeros y validaciones rápidas de modelos.</p>
+      </div>
+      <nav class="demo-nav" aria-label="Navegación principal">
+        <a href="{{ '/' | relative_url }}" data-i18n-en="Home">Inicio</a>
+        <a href="{{ '/flowers/' | relative_url }}" data-i18n-en="Flowers">Flores</a>
+        <a href="{{ '/numbers/' | relative_url }}" data-i18n-en="Numbers">Números</a>
+        <a href="{{ '/perros/' | relative_url }}" data-i18n-en="Dogs or Cats">Perros o Gatos</a>
+        <a href="{{ '/bitcoin/' | relative_url }}" data-i18n-en="Bitcoin">Bitcoin</a>
+        <a href="{{ '/yolo/' | relative_url }}" data-i18n-en="YOLO">YOLO</a>
+      </nav>
+      <button class="lang-toggle" type="button" data-lang-toggle aria-label="Cambiar idioma" data-i18n-aria-en="Change language">EN</button>
+    </div>
   </header>
 
-  <main>
-    <section>
-      <h2>Bienvenido a la sección de inteligencia artificial</h2>
-      <p>Explora diferentes proyectos y modelos entrenados.</p>
-    </section>
-
-    <section>
-      <h2>Inteligencia Artificial</h2>
-      <p>Redes Neuronales</p>
-      <ul>
-        <li><a href="{{ '/numbers/' | relative_url }}">Predicción de números escritos a mano</a></li>
-        <li><a href="{{ '/flowers/' | relative_url }}">Detección de flores por medio de imágenes</a>
-        </li>
-        <li><a href="{{ '/perros/' | relative_url }}">Detección de perros o gatos por medio de
-            imágenes</a></li>
-        <li><a href="{{ '/bitcoin/' | relative_url }}">Predicción del valor de bolsa de bitcoin</a>
-        </li>
-        <li><a href="{{ '/YOLO/' | relative_url }}">Detección de objetos con el modelo YOLO</a></li>
-        <li><a href="{{ '/faces/' | relative_url }}">Reconocimiento facial con caras</a></li>
-        <li><a href="{{ '/emails/' | relative_url }}">Detección de phishing emails con LSTMs RNN</a>
-        </li>
-      </ul>
-    </section>
-
-    <section>
-      <h2>Programación</h2>
-      <p>C++</p>
-      <p>Python</p>
-    </section>
-
-    <section>
-      <h2>Diseño de Sistemas</h2>
-      <p>Django</p>
-      <p>.NET</p>
-      <p>React</p>
-    </section>
-
+  <main class="demo-container demo-main">
     {{ content }}
   </main>
 
-  <footer>
-    <p>Autor: Ezequiel Isaac Rodriguez Tenorio.</p>
+  <footer class="demo-footer">
+    <div class="demo-container footer__content">
+      <div>
+        <p class="eyebrow" data-i18n-en="Contact">Contacto</p>
+        <p class="footer__lede" data-i18n-en="Hermosillo, SON · IsaacRodriguezCH@outlook.com · (662) 370-1716">Hermosillo, SON · IsaacRodriguezCH@outlook.com · (662) 370-1716</p>
+      </div>
+      <div class="footer__links">
+        <a href="mailto:IsaacRodriguezCH@outlook.com" data-i18n-en="Email me">Escríbeme</a>
+        <a href="https://github.com/IsokGta7" target="_blank" rel="noreferrer" data-i18n-en="GitHub">GitHub</a>
+        <a href="https://www.linkedin.com/in/ezequiel-isaac-rodriguez-tenorio" target="_blank" rel="noreferrer" data-i18n-en="LinkedIn">LinkedIn</a>
+      </div>
+    </div>
+    <p class="footer__legal" data-i18n-en="© {{ site.time | date: '%Y' }} Ezequiel Isaac Rodríguez Tenorio">© {{ site.time | date: '%Y' }} Ezequiel Isaac Rodríguez Tenorio</p>
   </footer>
+  <script src="/assets/scripts/i18n.js"></script>
 </body>
-
 </html>

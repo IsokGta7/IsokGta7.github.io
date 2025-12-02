@@ -1,214 +1,243 @@
 ---
 layout: default
-title: Bitcoin Prediction
+title: Predicción BTC/USDT
+description: Serie temporal con LSTM en TensorFlow.js y visualización en Chart.js.
 permalink: /bitcoin/
 ---
 
-<!DOCTYPE html>
-<html lang="en">
+<section class="demo-card">
+  <div class="section-title">
+    <div>
+      <p class="eyebrow" data-i18n-en="Time series">Series de tiempo</p>
+      <h2 data-i18n-en="BTC/USDT price prediction">Predicción de precios BTC/USDT</h2>
+      <p class="subtle-text" data-i18n-en="Client-side normalization and controlled updates with Binance data.">Normalización en cliente y actualización controlada con datos de Binance.</p>
+    </div>
+    <span id="btc-status" class="status-pill" data-i18n-en="Loading model...">Cargando modelo...</span>
+  </div>
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BTC/USDT Predictions</title>
-    <link rel="stylesheet" href="/styles/style.css">
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
-</head>
+  <div class="summary-grid">
+    <div class="summary-card">
+      <h3 data-i18n-en="How it works">Cómo funciona</h3>
+      <ul>
+        <li data-i18n-en="Downloads 1m candles from Binance and normalizes close price.">Descarga velas 1m desde Binance y normaliza precio de cierre.</li>
+        <li data-i18n-en="Generates 60-step windows and sends them to a lightweight TF.js LSTM.">Genera ventanas de 60 pasos y las envía al LSTM ligero en TF.js.</li>
+        <li data-i18n-en="Denormalizes the prediction and compares against the latest real value.">Desnormaliza la predicción y la compara contra el último valor real.</li>
+      </ul>
+    </div>
+    <div class="summary-card">
+      <h3 data-i18n-en="Quick test">Para probar rápido</h3>
+      <ul>
+        <li data-i18n-en="Click “Start updates” to trigger inferences each cycle.">Haz clic en “Iniciar actualizaciones” para disparar inferencias cada ciclo.</li>
+        <li data-i18n-en="Use “Stop” to clear intervals and free tensors.">Usa “Detener” para limpiar intervalos y liberar tensores.</li>
+        <li data-i18n-en="Watch both charts to validate deviations in real time.">Observa las dos gráficas para validar desviaciones en tiempo real.</li>
+      </ul>
+    </div>
+  </div>
 
-<body>
-    <header>
-        <nav>
-            <ul>
-                <li><a href="/index.html">Inicio</a></li>
-            </ul>
-        </nav>
-        <h1>BTC/USDT Predictions</h1>
-    </header>
-    <main>
-        <!-- First Chart: Prediction -->
-        <div class="chart-container">
-            <h2>Prediction Chart</h2>
-            <canvas id="predictionChart" width="400" height="200"></canvas>
-        </div>
-        <!-- Second Chart: Real vs Predicted Comparison -->
-        <div class="chart-container">
-            <h2>Real vs. Predicted Comparison</h2>
-            <canvas id="comparisonChart" width="400" height="200"></canvas>
-        </div>
-    </main>
-    <footer>
-        <p>&copy; Predicción de BTC. Ezequiel Isaac Rodriguez Tenorio.</p>
-    </footer>
+  <div class="controls">
+    <button id="btc-start" class="button" data-i18n-en="Start updates">Iniciar actualizaciones</button>
+    <button id="btc-stop" class="button secondary" disabled data-i18n-en="Stop">Detener</button>
+  </div>
 
-    <script>
-        // Load the TensorFlow.js model
-        let model;
-        let dataMean = null;
-        let dataStd = null;
+  <div class="chart-grid">
+    <div class="chart-wrapper">
+      <h3 data-i18n-en="Prediction">Predicción</h3>
+      <canvas id="predictionChart" height="200"></canvas>
+    </div>
+    <div class="chart-wrapper">
+      <h3 data-i18n-en="Real vs Predicted">Real vs Predicho</h3>
+      <canvas id="comparisonChart" height="200"></canvas>
+    </div>
+  </div>
+</section>
 
-        tf.loadLayersModel('/assets/bitcoin/model_btc.json').then(loadedModel => {
-            model = loadedModel;
-            console.log('Model loaded successfully!');
-        }).catch(error => {
-            console.error('Error loading the model:', error);
-        });
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    let model;
+    let dataMean = null;
+    let dataStd = null;
+    let recentData = [];
+    let intervalId;
 
-        // Initialize Prediction Chart
-        const predictionCtx = document.getElementById('predictionChart').getContext('2d');
-        const predictionChart = new Chart(predictionCtx, {
-            type: 'line',
-            data: {
-                labels: [],
-                datasets: [
-                    {
-                        label: 'Prediction',
-                        data: [],
-                        borderColor: 'red',
-                        fill: false
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                scales: {
-                    x: {
-                        type: 'time',
-                        time: {
-                            unit: 'second' // Cambiado a segundo para actualizar más frecuentemente
-                        }
-                    }
-                }
-            }
-        });
+    const statusPill = document.getElementById('btc-status');
+    const startBtn = document.getElementById('btc-start');
+    const stopBtn = document.getElementById('btc-stop');
 
-        // Initialize Real vs Predicted Comparison Chart
-        const comparisonCtx = document.getElementById('comparisonChart').getContext('2d');
-        const comparisonChart = new Chart(comparisonCtx, {
-            type: 'line',
-            data: {
-                labels: [],
-                datasets: [
-                    {
-                        label: 'Real Value',
-                        data: [],
-                        borderColor: 'blue',
-                        fill: false
-                    },
-                    {
-                        label: 'Prediction',
-                        data: [],
-                        borderColor: 'red',
-                        fill: false
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                scales: {
-                    x: {
-                        type: 'time',
-                        time: {
-                            unit: 'second' // Cambiado a segundo para el mismo propósito
-                        }
-                    }
-                }
-            }
-        });
+    const copy = {
+      status: {
+        loading: { es: 'Cargando modelo...', en: 'Loading model...' },
+        ready: { es: 'Modelo listo', en: 'Model ready' },
+        error: { es: 'Error al cargar modelo', en: 'Error loading model' },
+        running: { es: 'Actualizando datos...', en: 'Updating data...' },
+        stopped: { es: 'Detenido', en: 'Stopped' }
+      },
+      chart: {
+        prediction: { es: 'Predicción', en: 'Prediction' },
+        real: { es: 'Valor real', en: 'Real value' },
+        predicted: { es: 'Predicción', en: 'Prediction' }
+      }
+    };
 
-        // Buffer to hold the last 60 closing prices
-        let recentData = [];
+    let statusKey = 'loading';
+    let statusState = '';
 
-        async function fetchBinanceData() {
-            try {
-                const url = 'https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1m&limit=10';
-                const response = await fetch(url);
-                const data = await response.json();
+    function translate(map) {
+      return (window.SiteI18n && window.SiteI18n.translate) ? window.SiteI18n.translate(map) : (map?.es || '');
+    }
 
-                // Extract relevant fields for prediction
-                const closingPrices = data.map(candle => parseFloat(candle[4]));
+    function setStatus(key, state = '') {
+      statusKey = key;
+      statusState = state;
+      const text = translate(copy.status[key] || { es: key, en: key });
+      statusPill.textContent = text;
+      statusPill.className = `status-pill ${state}`.trim();
+    }
 
-                // Ensure valid data
-                if (!closingPrices.every(price => isFinite(price))) {
-                    console.error('Invalid price data detected');
-                    return [];
-                }
+    function chartLabels() {
+      return {
+        prediction: translate(copy.chart.prediction),
+        real: translate(copy.chart.real),
+        predicted: translate(copy.chart.predicted)
+      };
+    }
 
-                // Calculate mean and std for normalization if not calculated yet
-                if (dataMean === null || dataStd === null) {
-                    const tensorPrices = tf.tensor(closingPrices);
-                    dataMean = tensorPrices.mean().arraySync();
-                    dataStd = tensorPrices.sub(dataMean).square().mean().sqrt().arraySync();
-                }
+    const labels = chartLabels();
 
-                return closingPrices;
-            } catch (error) {
-                console.error('Error fetching Binance data:', error);
-                return [];
-            }
+    const predictionChart = new Chart(document.getElementById('predictionChart').getContext('2d'), {
+      type: 'line',
+      data: { labels: [], datasets: [{ label: labels.prediction, data: [], borderColor: '#f97316', tension: 0.25 }] },
+      options: { responsive: true, scales: { x: { type: 'time', time: { unit: 'minute' } } } }
+    });
+
+    const comparisonChart = new Chart(document.getElementById('comparisonChart').getContext('2d'), {
+      type: 'line',
+      data: {
+        labels: [],
+        datasets: [
+          { label: labels.real, data: [], borderColor: '#22d3ee', tension: 0.25 },
+          { label: labels.predicted, data: [], borderColor: '#f97316', tension: 0.25 }
+        ]
+      },
+      options: { responsive: true, scales: { x: { type: 'time', time: { unit: 'minute' } } } }
+    });
+
+    function refreshChartLabels() {
+      const next = chartLabels();
+      predictionChart.data.datasets[0].label = next.prediction;
+      comparisonChart.data.datasets[0].label = next.real;
+      comparisonChart.data.datasets[1].label = next.predicted;
+      predictionChart.update('none');
+      comparisonChart.update('none');
+    }
+
+    async function loadModel() {
+      try {
+        await tf.ready();
+        model = await tf.loadLayersModel('{{ '/assets/bitcoin/model_btc.json' | relative_url }}');
+        setStatus('ready', 'ready');
+        startBtn.disabled = false;
+      } catch (error) {
+        console.error('Error loading model', error);
+        setStatus('error', 'error');
+      }
+    }
+
+    async function fetchBinanceData() {
+      try {
+        const url = 'https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1m&limit=10';
+        const response = await fetch(url);
+        const data = await response.json();
+        const closing = data.map(candle => parseFloat(candle[4])).filter(Number.isFinite);
+        if (closing.length === 0) return [];
+        if (dataMean === null || dataStd === null) {
+          const t = tf.tensor(closing);
+          dataMean = t.mean().arraySync();
+          dataStd = t.sub(dataMean).square().mean().sqrt().arraySync();
+          t.dispose();
         }
+        return closing;
+      } catch (error) {
+        console.error('Error fetching Binance data:', error);
+        return [];
+      }
+    }
 
-        // Preprocess data and make predictions
-        async function updateCharts() {
-            const closingPrices = await fetchBinanceData();
+    function normalize(sequence) {
+      const t = tf.tensor(sequence);
+      const normalized = t.sub(dataMean).div(dataStd);
+      t.dispose();
+      return normalized;
+    }
 
-            if (closingPrices.length === 0) {
-                return; // Stop if there's an error or no valid data
-            }
+    async function predict() {
+      if (!model || recentData.length < 60) return;
+      const windowed = recentData.slice(-60);
+      const normalized = normalize(windowed);
+      const input = normalized.reshape([1, 60, 1]);
+      const prediction = model.predict(input);
+      const predValue = prediction.dataSync()[0];
+      const denormalized = predValue * dataStd + dataMean;
+      const now = new Date();
 
-            // Process the latest price
-            recentData = recentData.concat(closingPrices);
+      predictionChart.data.labels.push(now);
+      predictionChart.data.datasets[0].data.push(denormalized);
+      predictionChart.update('none');
 
-            // Limitar el tamaño del buffer a 60 elementos
-            if (recentData.length > 60) {
-                recentData = recentData.slice(recentData.length - 60); // Mantener solo los últimos 60 precios
-            }
+      comparisonChart.data.labels.push(now);
+      comparisonChart.data.datasets[0].data.push(windowed[windowed.length - 1]);
+      comparisonChart.data.datasets[1].data.push(denormalized);
+      comparisonChart.update('none');
 
-            // Preparate el tensor de entrada solo si tenemos al menos 60 precios
-            if (recentData.length < 60) {
-                return; // No podemos hacer una predicción todavía
-            }
+      normalized.dispose();
+      input.dispose();
+      prediction.dispose();
+    }
 
-            const inputTensor = tf.tensor(recentData).sub(dataMean).div(dataStd).reshape([1, 60, 1]);
-
-            try {
-                const predictionTensor = model.predict(inputTensor);
-                const normalizedPrediction = predictionTensor.dataSync()[0]; // Valor de predicción única
-                const prediction = normalizedPrediction * dataStd + dataMean; // Desnormalizar
-
-                // Obtener timestamp actual
-                const currentTimestamp = new Date();
-
-                // Actualiza las gráficas con los nuevos datos
-                predictionChart.data.labels.push(currentTimestamp);
-                predictionChart.data.datasets[0].data.push(prediction);
-                predictionChart.update();
-
-                comparisonChart.data.labels.push(currentTimestamp);
-                comparisonChart.data.datasets[0].data.push(recentData[recentData.length - 1]); // Valor real
-                comparisonChart.data.datasets[1].data.push(prediction); // Valor predicho
-                comparisonChart.update();
-
-                // Limitar el número de puntos de datos en la gráfica
-                if (predictionChart.data.labels.length > 100) {
-                    predictionChart.data.labels.shift();
-                    predictionChart.data.datasets[0].data.shift();
-                }
-                if (comparisonChart.data.labels.length > 100) {
-                    comparisonChart.data.labels.shift();
-                    comparisonChart.data.datasets[0].data.shift();
-                    comparisonChart.data.datasets[1].data.shift();
-                }
-            } catch (error) {
-                console.error('Error in prediction:', error);
-            }
+    async function loopFetchAndPredict() {
+      try {
+        setStatus('running', 'ready');
+        const newData = await fetchBinanceData();
+        if (newData.length > 0) {
+          recentData = recentData.concat(newData).slice(-300);
+          await predict();
         }
+      } catch (error) {
+        console.error('Error during loop', error);
+        setStatus('error', 'error');
+        stop();
+      }
+    }
 
-        // Fetch the data immediately on page load, and then every 10 seconds
-        setInterval(updateCharts, 10000); // Ahora actualizado cada 10 segundos
-    </script>
+    function start() {
+      if (intervalId) return;
+      intervalId = setInterval(loopFetchAndPredict, 4000);
+      startBtn.disabled = true;
+      stopBtn.disabled = false;
+      setStatus('running', 'ready');
+    }
 
-</body>
+    function stop() {
+      if (intervalId) {
+        clearInterval(intervalId);
+        intervalId = null;
+      }
+      stopBtn.disabled = true;
+      startBtn.disabled = false;
+      setStatus('stopped');
+    }
 
-</html>
+    startBtn.addEventListener('click', start);
+    stopBtn.addEventListener('click', stop);
+
+    loadModel();
+    refreshChartLabels();
+
+    document.addEventListener('language:change', () => {
+      setStatus(statusKey, statusState);
+      refreshChartLabels();
+    });
+  });
+</script>
