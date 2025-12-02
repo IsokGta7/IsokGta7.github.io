@@ -3,23 +3,11 @@ permalink: /404.html
 layout: default
 ---
 
-<style type="text/css" media="screen">
-  .container {
-    margin: 10px auto;
-    max-width: 600px;
-    text-align: center;
-  }
-  h1 {
-    margin: 30px 0;
-    font-size: 4em;
-    line-height: 1;
-    letter-spacing: -1px;
-  }
-</style>
-
-<div class="container">
-  <h1>404</h1>
-
-  <p><strong>Page not found :(</strong></p>
-  <p>The requested page could not be found.</p>
-</div>
+<section class="demo-card" style="max-width:520px; margin:0 auto; text-align:center;">
+  <h1 data-i18n-en="404">404</h1>
+  <p class="prediction-output" data-i18n-en="Page not found.">Página no encontrada.</p>
+  <p class="subtle-text" data-i18n-en="Check the URL or return to the homepage.">Verifica la URL o vuelve al inicio.</p>
+  <div class="controls" style="justify-content:center;">
+    <a class="button" href="{{ '/' | relative_url }}" data-i18n-en="Return home">Volver al inicio</a>
+  </div>
+</section>

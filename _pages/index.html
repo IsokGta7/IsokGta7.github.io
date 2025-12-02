@@ -1,40 +1,43 @@
-<!DOCTYPE html>
-<html lang="es">
+---
+layout: default
+title: Demos TensorFlow.js
+description: Colección de demos de IA en navegador.
+permalink: /demos/
+---
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Modelos Entrenados en TensorFlow.js</title>
-    <link rel="stylesheet" href="/eirodriguezt/styles/style.css">
-</head>
-
-<body>
-    <header>
-        <h1>Modelos de TensorFlow.js</h1>
-        <nav>
-            <ul>
-                <li><a href="/eirodriguezt/_pages/flowers.html">Flores</a></li>
-                <li><a href="/eirodriguezt/_pages/numbers.html">Números</a></li>
-                <li><a href="/eirodriguezt/_pages/perros.html">Perros</a></li>
-                <li><a href="/eirodriguezt/_pages/bitcoin.html">Bitcoin</a></li>
-                <li><a href="/eirodriguezt/_pages/yolo.html">YOLO</a></li>
-                <li><a href="/eirodriguezt/_pages/caras.html">Reconocimiento Facial</a></li>
-            </ul>
-        </nav>
-    </header>
-
-    <main>
-        <section>
-            <h2>Bienvenido</h2>
-            <p>
-                Explora diferentes modelos entrenados utilizando TensorFlow.js.
-            </p>
-        </section>
-    </main>
-
-    <footer>
-        <p>Autor: Ezequiel Isaac Rodriguez Tenorio.</p>
-    </footer>
-</body>
-
-</html>
+<section class="demo-card">
+  <div class="section-title">
+    <div>
+      <p class="eyebrow" data-i18n-en="Demos">Demos</p>
+      <h2 data-i18n-en="TensorFlow.js models">Modelos TensorFlow.js</h2>
+      <p class="subtle-text" data-i18n-en="Quick in-browser tests to validate vision and time-series prototypes.">Pruebas rápidas en navegador para validar prototipos de visión y series de tiempo.</p>
+    </div>
+  </div>
+  <div class="summary-grid">
+    <div class="summary-card">
+      <h3 data-i18n-en="Flower classifier">Clasificador de flores</h3>
+      <p data-i18n-en="Rescales to 180x180, normalizes, and predicts 5 species in real time.">Reescala a 180x180, normaliza y predice 5 especies en tiempo real.</p>
+      <a class="inline-link" href="{{ '/flowers/' | relative_url }}" data-i18n-en="Open demo">Abrir demo</a>
+    </div>
+    <div class="summary-card">
+      <h3 data-i18n-en="Handwritten digits">Dígitos escritos</h3>
+      <p data-i18n-en="Converts strokes to 28x28 grayscale and classifies with an MNIST model.">Convierte trazos a 28x28 en escala de grises y clasifica con un modelo MNIST.</p>
+      <a class="inline-link" href="{{ '/numbers/' | relative_url }}" data-i18n-en="Try demo">Probar demo</a>
+    </div>
+    <div class="summary-card">
+      <h3 data-i18n-en="Dogs vs Cats">Perros vs Gatos</h3>
+      <p data-i18n-en="Binary CNN optimized with camera or file input and probability output.">CNN binaria optimizada con entrada por cámara o archivo y salida de probabilidad.</p>
+      <a class="inline-link" href="{{ '/perros/' | relative_url }}" data-i18n-en="View classifier">Ver clasificador</a>
+    </div>
+    <div class="summary-card">
+      <h3 data-i18n-en="Bitcoin prediction">Predicción Bitcoin</h3>
+      <p data-i18n-en="Lightweight LSTM that normalizes Binance candles and graphs real vs. prediction.">LSTM ligero que normaliza velas de Binance y grafica real vs predicción.</p>
+      <a class="inline-link" href="{{ '/bitcoin/' | relative_url }}" data-i18n-en="Analyze series">Analizar serie</a>
+    </div>
+    <div class="summary-card">
+      <h3 data-i18n-en="YOLO detection">Detección YOLO</h3>
+      <p data-i18n-en="Processes camera frames, runs YOLOv8 on WebGL, and draws bounding boxes.">Procesa frames de cámara, ejecuta YOLOv8 en WebGL y dibuja bounding boxes.</p>
+      <a class="inline-link" href="{{ '/yolo/' | relative_url }}" data-i18n-en="Try detection">Probar detección</a>
+    </div>
+  </div>
+</section>

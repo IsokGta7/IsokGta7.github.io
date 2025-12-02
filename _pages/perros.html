@@ -1,167 +1,221 @@
 ---
 layout: default
-title: Perros
+title: Perros o gatos
+description: Clasificador binario en TensorFlow.js con entrada por cámara o archivo.
 permalink: /perros/
 ---
 
-<!DOCTYPE html>
-<html lang="es">
+<section class="demo-card">
+  <div class="section-title">
+    <div>
+      <p class="eyebrow" data-i18n-en="CNN · Binary">CNN · Binario</p>
+      <h2 data-i18n-en="Dog or cat classifier">Clasificador de perros o gatos</h2>
+      <p class="subtle-text" data-i18n-en="Binary CNN optimized for camera or upload with probabilistic output.">CNN binaria optimizada para cámara o carga con salida probabilística.</p>
+    </div>
+    <span id="pet-status" class="status-pill" data-i18n-en="Loading model...">Cargando modelo...</span>
+  </div>
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Clasificador Perrigato</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
-    <link rel="stylesheet" href="/styles/style.css">
-</head>
+  <div class="summary-grid">
+    <div class="summary-card">
+      <h3 data-i18n-en="How it works">Cómo funciona</h3>
+      <ul>
+        <li data-i18n-en="Resizes input to 160x160, normalizes, and feeds a binary CNN.">Redimensiona la entrada a 160x160, normaliza y la envía a una CNN binaria.</li>
+        <li data-i18n-en="Outputs probability for each class and selects the highest.">Devuelve probabilidad por clase y selecciona la más alta.</li>
+        <li data-i18n-en="Uses requestAnimationFrame for smooth camera inference.">Usa requestAnimationFrame para inferencia fluida con cámara.</li>
+      </ul>
+    </div>
+    <div class="summary-card">
+      <h3 data-i18n-en="Usage tips">Consejos de uso</h3>
+      <ul>
+        <li data-i18n-en="Keep the pet centered and avoid motion blur.">Mantén a la mascota centrada y evita el movimiento.</li>
+        <li data-i18n-en="Upload clear photos if camera access is unavailable.">Sube fotos claras si no hay acceso a cámara.</li>
+        <li data-i18n-en="Stop the camera to free browser resources when done.">Detén la cámara para liberar recursos del navegador al terminar.</li>
+      </ul>
+    </div>
+  </div>
 
-<body>
-    <header>
-        <nav>
-            <ul>
-                <li><a href="/index.html">Inicio</a></li>
-            </ul>
-        </nav>
-        <h1>Clasificador de Perro o Gato</h1>
-    </header>
+  <div class="controls">
+    <button id="pet-start" class="button" data-i18n-en="Use camera">Usar cámara</button>
+    <button id="pet-stop" class="button secondary" disabled data-i18n-en="Stop">Detener</button>
+    <label class="button secondary" for="pet-file" data-i18n-en="Upload image">Subir imagen</label>
+    <input id="pet-file" type="file" accept="image/*" style="display:none;">
+  </div>
 
-    <main>
-        <div class="upload-container">
-            <input type="file" id="fileInput" accept="image/*">
-            <button class="button" onclick="classifyImage()">Clasificar Imagen</button>
-        </div>
-        <div class="camera-container">
-            <button id="startCameraButton" class="button">Iniciar Cámara</button>
-            <video id="camera" autoplay playsinline muted></video>
-            <button id="stopCameraButton" class="button">Detener Cámara</button>
-        </div>
-        <p id="result" class="result-text">Resultado: </p>
-    </main>
+  <div class="demo-grid">
+    <div class="video-panel">
+      <div class="media-wrapper">
+        <video id="pet-video" width="260" height="260" autoplay playsinline muted></video>
+      </div>
+      <p class="subtle-text" data-i18n-en="Live video">Video en vivo</p>
+    </div>
+    <div class="canvas-panel">
+      <div class="canvas-wrapper">
+        <canvas id="pet-preview" width="260" height="260"></canvas>
+      </div>
+      <p class="subtle-text" data-i18n-en="Preprocessed image">Imagen preprocesada</p>
+    </div>
+  </div>
 
-    <footer>
-        <p>&copy; Clasificador Perrigato. Ezequiel Isaac Rodriguez Tenorio</p>
-    </footer>
+  <p id="pet-output" class="prediction-output">Cargando modelo...</p>
+  <p class="note" data-i18n-en="Model expects one subject; avoid multiple animals or backgrounds with pets.">El modelo espera un sujeto; evita múltiples mascotas o fondos con animales.</p>
+</section>
 
-    <script>
-        let model;
-        let videoStream = null;
-        let cameraActive = false;
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const video = document.getElementById('pet-video');
+    const preview = document.getElementById('pet-preview');
+    const startBtn = document.getElementById('pet-start');
+    const stopBtn = document.getElementById('pet-stop');
+    const fileInput = document.getElementById('pet-file');
+    const statusPill = document.getElementById('pet-status');
+    const output = document.getElementById('pet-output');
 
-        // Cargar el modelo de TensorFlow.js
-        async function loadModel() {
-            model = await tf.loadLayersModel('/assets/perros/model-perrigato.json');
-            console.log("Modelo cargado");
-        }
+    let model;
+    let stream;
+    let rafId;
+    let lastLabel = null;
 
-        // Convertir imagen a tensor y clasificar
-        async function classifyImage() {
-            const fileInput = document.getElementById('fileInput');
-            const file = fileInput.files[0];
+    const copy = {
+      status: {
+        loading: { es: 'Cargando modelo...', en: 'Loading model...' },
+        ready: { es: 'Modelo listo', en: 'Model ready' },
+        cameraError: { es: 'Permiso de cámara requerido', en: 'Camera permission required' },
+        error: { es: 'Error al cargar modelo', en: 'Error loading model' }
+      },
+      output: {
+        dog: { es: 'Perro', en: 'Dog' },
+        cat: { es: 'Gato', en: 'Cat' },
+        prompt: { es: 'Carga una imagen o activa la cámara.', en: 'Upload an image or enable the camera.' },
+        probability: { es: 'Probabilidad', en: 'Probability' }
+      }
+    };
 
-            if (!file) {
-                alert("Por favor, selecciona una imagen.");
-                return;
-            }
+    function translate(map) {
+      return (window.SiteI18n && window.SiteI18n.translate) ? window.SiteI18n.translate(map) : (map?.es || '');
+    }
 
-            const image = await loadImage(file);
-            const tensor = preprocessImage(image);
+    function setStatus(key, state = '') {
+      const text = translate(copy.status[key] || { es: key, en: key });
+      statusPill.textContent = text;
+      statusPill.className = `status-pill ${state}`.trim();
+    }
 
-            const prediction = await model.predict(tensor).data();
-            const label = prediction[0] > 0.5 ? "Perro" : "Gato";
+    function renderOutput(label, prob) {
+      lastLabel = { label, prob };
+      const labelText = translate(copy.output[label] || { es: label, en: label });
+      const probText = translate(copy.output.probability);
+      output.textContent = `${labelText} (${probText}: ${(prob * 100).toFixed(1)}%)`;
+    }
 
-            document.getElementById('result').innerText = `Resultado: ${label}`;
-        }
+    function renderPrompt() {
+      output.textContent = translate(copy.output.prompt);
+    }
 
-        // Clasificar en tiempo real desde la cámara
-        async function classifyCameraFrame() {
-            if (!cameraActive) return;
+    async function loadModel() {
+      try {
+        await tf.ready();
+        model = await tf.loadLayersModel('{{ '/assets/perros/model_dogs_cats.json' | relative_url }}');
+        setStatus('ready', 'ready');
+        renderPrompt();
+      } catch (error) {
+        console.error(error);
+        setStatus('error', 'error');
+      }
+    }
 
-            const video = document.getElementById('camera');
-            const tensor = preprocessVideo(video);
+    function stopCamera() {
+      if (rafId) cancelAnimationFrame(rafId);
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+        stream = null;
+      }
+      video.srcObject = null;
+      startBtn.disabled = false;
+      stopBtn.disabled = true;
+    }
 
-            const prediction = await model.predict(tensor).data();
-            const label = prediction[0] > 0.5 ? "Perro" : "Gato";
+    function preprocess(source) {
+      return tf.tidy(() => {
+        const input = tf.browser.fromPixels(source);
+        const resized = tf.image.resizeBilinear(input, [160, 160]);
+        const normalized = resized.toFloat().div(255);
+        return normalized.expandDims(0);
+      });
+    }
 
-            document.getElementById('result').innerText = `Resultado: ${label}`;
+    function renderPreview(source) {
+      const ctx = preview.getContext('2d');
+      ctx.clearRect(0, 0, preview.width, preview.height);
+      ctx.drawImage(source, 0, 0, preview.width, preview.height);
+    }
 
-            requestAnimationFrame(classifyCameraFrame);
-        }
+    async function predictFrame() {
+      if (!model || !video.srcObject) return;
+      rafId = requestAnimationFrame(predictFrame);
+      const input = preprocess(video);
+      const prediction = model.predict(input);
+      const data = await prediction.data();
+      const probDog = data[0];
+      const probCat = data[1];
+      const isDog = probDog >= probCat;
+      renderOutput(isDog ? 'dog' : 'cat', isDog ? probDog : probCat);
+      renderPreview(video);
+      tf.dispose([input, prediction]);
+    }
 
-        // Iniciar la cámara
-        async function startCamera() {
-            const video = document.getElementById('camera');
+    function handleUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = ({ target }) => {
+        const img = new Image();
+        img.onload = async () => {
+          if (!model) await loadModel();
+          const input = preprocess(img);
+          const prediction = model.predict(input);
+          const data = await prediction.data();
+          const probDog = data[0];
+          const probCat = data[1];
+          const isDog = probDog >= probCat;
+          renderOutput(isDog ? 'dog' : 'cat', isDog ? probDog : probCat);
+          renderPreview(img);
+          tf.dispose([input, prediction]);
+        };
+        img.src = target.result;
+      };
+      reader.readAsDataURL(file);
+    }
 
-            try {
-                videoStream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: { exact: "environment" } }, // Para la cámara trasera
-                });
-                video.srcObject = videoStream;
-                cameraActive = true;
+    async function startCamera() {
+      if (!model) await loadModel();
+      stopCamera();
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        video.srcObject = stream;
+        startBtn.disabled = true;
+        stopBtn.disabled = false;
+        predictFrame();
+      } catch (error) {
+        console.error('No se pudo acceder a la cámara', error);
+        setStatus('cameraError', 'error');
+      }
+    }
 
-                video.addEventListener('loadeddata', () => {
-                    classifyCameraFrame(); // Empezar predicciones en tiempo real
-                });
-            } catch (error) {
-                console.error("Error al iniciar la cámara:", error);
-                alert("No se pudo acceder a la cámara. Asegúrate de que los permisos están habilitados.");
-            }
-        }
+    startBtn.addEventListener('click', startCamera);
+    stopBtn.addEventListener('click', stopCamera);
+    fileInput.addEventListener('change', handleUpload);
 
-        // Detener la cámara
-        function stopCamera() {
-            if (videoStream) {
-                videoStream.getTracks().forEach(track => track.stop());
-                videoStream = null;
-            }
-            cameraActive = false;
-        }
+    window.addEventListener('beforeunload', stopCamera);
+    loadModel();
 
-        // Cargar imagen desde archivo
-        function loadImage(file) {
-            return new Promise((resolve) => {
-                const reader = new FileReader();
-                reader.onload = () => {
-                    const img = new Image();
-                    img.onload = () => resolve(img);
-                    img.src = reader.result;
-                };
-                reader.readAsDataURL(file);
-            });
-        }
-
-        // Preprocesar imagen: escala de grises y redimensionar
-        function preprocessImage(image) {
-            return tf.tidy(() => {
-                let tensor = tf.browser.fromPixels(image, 1) // Convertir a tensor con 1 canal (escala de grises)
-                    .resizeNearestNeighbor([100, 100]) // Redimensionar a 100x100
-                    .toFloat() // Convertir a tipo flotante
-                    .div(tf.scalar(255.0)) // Normalizar entre 0 y 1
-                    .expandDims(0); // Agregar dimensión de lote para obtener forma [1, 100, 100, 1]
-
-                return tensor;
-            });
-        }
-
-        // Preprocesar video para usar la cámara
-        function preprocessVideo(video) {
-            return tf.tidy(() => {
-                let tensor = tf.browser.fromPixels(video, 1) // Convertir a tensor con 1 canal (escala de grises)
-                    .resizeNearestNeighbor([100, 100]) // Redimensionar a 100x100
-                    .toFloat() // Convertir a tipo flotante
-                    .div(tf.scalar(255.0)) // Normalizar entre 0 y 1
-                    .expandDims(0); // Agregar dimensión de lote para obtener forma [1, 100, 100, 1]
-
-                return tensor;
-            });
-        }
-
-        // Cargar el modelo al cargar la página
-        loadModel();
-
-        // Event listeners para botones de cámara
-        document.getElementById('startCameraButton').addEventListener('click', startCamera);
-        document.getElementById('stopCameraButton').addEventListener('click', stopCamera);
-    </script>
-</body>
-
-</html>
+    document.addEventListener('language:change', () => {
+      setStatus(model ? 'ready' : 'loading', model ? 'ready' : '');
+      if (lastLabel) {
+        renderOutput(lastLabel.label, lastLabel.prob);
+      } else {
+        renderPrompt();
+      }
+    });
+  });
+</script>

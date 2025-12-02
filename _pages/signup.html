@@ -1,16 +1,31 @@
 ---
 layout: default
-title: Signup
+title: Registro
+description: Formulario de registro de referencia.
 permalink: /signup/
 ---
 
-<h2>Sign Up</h2>
-<form action="/signup" method="POST">
-  <label for="name">Name:</label>
-  <input type="text" id="name" name="name" required><br>
-  <label for="email">Email:</label>
-  <input type="email" id="email" name="email" required><br>
-  <label for="password">Password:</label>
-  <input type="password" id="password" name="password" required><br>
-  <button type="submit">Sign Up</button>
-</form>
+<section class="demo-card" style="max-width:520px; margin:0 auto;">
+  <div class="section-title">
+    <div>
+      <p class="eyebrow" data-i18n-en="Sign up">Alta</p>
+      <h2 data-i18n-en="Create an account">Crea una cuenta</h2>
+      <p class="subtle-text" data-i18n-en="Baseline form structure to accompany the demos.">Estructura básica de formulario para acompañar los demos.</p>
+    </div>
+  </div>
+  <form class="form-group" action="/signup" method="POST" style="display:grid; gap:0.75rem;">
+    <div class="form-group">
+      <label for="name" data-i18n-en="Name">Nombre</label>
+      <input type="text" id="name" name="name" required data-i18n-placeholder-en="Name" data-i18n-placeholder-original="Nombre">
+    </div>
+    <div class="form-group">
+      <label for="email" data-i18n-en="Email">Email</label>
+      <input type="email" id="email" name="email" required data-i18n-placeholder-en="Email" data-i18n-placeholder-original="Email">
+    </div>
+    <div class="form-group">
+      <label for="password" data-i18n-en="Password">Contraseña</label>
+      <input type="password" id="password" name="password" required data-i18n-placeholder-en="Password" data-i18n-placeholder-original="Contraseña">
+    </div>
+    <button type="submit" class="button" data-i18n-en="Register">Registrar</button>
+  </form>
+</section>

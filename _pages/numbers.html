@@ -1,176 +1,175 @@
 ---
 layout: default
-title: Numbers
+title: Reconocimiento de números
+description: Demo ligera de MNIST en TensorFlow.js con canvas optimizado para escritura a mano.
 permalink: /numbers/
 ---
 
-<!DOCTYPE html>
-<html lang="es">
+<section class="demo-card">
+  <div class="section-title">
+    <div>
+      <p class="eyebrow" data-i18n-en="CNN · MNIST">CNN · MNIST</p>
+      <h2 data-i18n-en="Handwritten number recognition">Reconocimiento de números escritos a mano</h2>
+      <p class="subtle-text" data-i18n-en="Draw on the canvas; client-side normalization enables instant predictions.">Dibuja en el lienzo, optimizado con normalización en cliente para predicciones inmediatas.</p>
+    </div>
+    <span id="numbers-status" class="status-pill" data-i18n-en="Loading model...">Cargando modelo...</span>
+  </div>
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reconocimiento de Números</title>
+  <div class="summary-grid">
+    <div class="summary-card">
+      <h3 data-i18n-en="How it works">Cómo funciona</h3>
+      <ul>
+        <li data-i18n-en="Canvas 224x224 is reduced to 28x28 grayscale.">El lienzo 224x224 se reduce a 28x28 en escala de grises.</li>
+        <li data-i18n-en="Normalized to 0-1 and adds batch dimension (1, 28, 28, 1).">Se normaliza a 0-1 y se agrega dimensión batch (1, 28, 28, 1).</li>
+        <li data-i18n-en="MNIST model returns probabilities and shows the top-1 class.">El modelo MNIST devuelve probabilidades y se muestra la clase top-1.</li>
+      </ul>
+    </div>
+    <div class="summary-card">
+      <h3 data-i18n-en="Tips">Tips</h3>
+      <ul>
+        <li data-i18n-en="Draw large numbers with continuous strokes.">Dibuja números grandes y con trazos continuos.</li>
+        <li data-i18n-en="Use “Clear” to reset the canvas and avoid artifacts.">Usa “Limpiar” para reiniciar el canvas y evitar residuos.</li>
+        <li data-i18n-en="If switching from touch to mouse, click inside the canvas before drawing.">Si cambias de dispositivo táctil a mouse, vuelve a pulsar dentro del lienzo antes de dibujar.</li>
+      </ul>
+    </div>
+  </div>
 
-    <!-- Librerías CSS -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-    <link rel="stylesheet" href="/styles/Better.css">
+  <div class="canvas-panel">
+    <div class="canvas-wrapper">
+      <canvas id="numbers-canvas" width="224" height="224"></canvas>
+    </div>
+    <div class="controls">
+      <button id="predict-btn" class="button" disabled data-i18n-en="Predict">Predecir</button>
+      <button id="clear-btn" class="button secondary" data-i18n-en="Clear">Limpiar</button>
+    </div>
+    <p id="numbers-output" class="prediction-output">Dibuja y presiona predecir.</p>
+  </div>
+</section>
 
-    <!-- TensorFlow.js -->
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
-</head>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const canvas = document.getElementById('numbers-canvas');
+    const ctx = canvas.getContext('2d');
+    const predictBtn = document.getElementById('predict-btn');
+    const clearBtn = document.getElementById('clear-btn');
+    const statusPill = document.getElementById('numbers-status');
+    const output = document.getElementById('numbers-output');
+    let model;
+    let isDrawing = false;
 
-<body>
-    <!-- Header -->
-    <header>
-        <nav class="nav-wrapper">
-            <div class="container">
-                <a href="/index.html" class="brand-logo">
-                    <i class="material-icons left">home</i>Inicio
-                </a>
-            </div>
-        </nav>
-        <div class="container center-align">
-            <h1 class="header">Proyecto: Reconocimiento de Números</h1>
-            <p class="flow-text grey-text text-lighten-1">
-                Dibuja un número en el lienzo y presiona "Predecir" para que el modelo lo identifique.
-            </p>
-        </div>
-    </header>
+    const copy = {
+      status: {
+        loading: { es: 'Cargando modelo...', en: 'Loading model...' },
+        ready: { es: 'Modelo listo', en: 'Model ready' },
+        error: { es: 'Error cargando modelo', en: 'Error loading model' }
+      },
+      output: {
+        prompt: { es: 'Dibuja y presiona predecir.', en: 'Draw and press predict.' },
+        result: { es: 'Predicción', en: 'Prediction' }
+      }
+    };
 
-    <!-- Main Content -->
-    <main class="container">
-        <!-- Canvas -->
-        <div class="row center-align">
-            <div class="col s12">
-                <canvas id="canvas" width="200" height="200" class="z-depth-2"></canvas>
-            </div>
-        </div>
+    function translate(map) {
+      return (window.SiteI18n && window.SiteI18n.translate) ? window.SiteI18n.translate(map) : (map?.es || '');
+    }
 
-        <!-- Botones -->
-        <div class="row center-align">
-            <div class="col s12">
-                <button class="btn-large waves-effect waves-light blue" onclick="predict()">
-                    <i class="material-icons left">check</i>Predecir
-                </button>
-                <button class="btn-large waves-effect waves-light red lighten-1" onclick="clearCanvas()">
-                    <i class="material-icons left">clear</i>Limpiar Canvas
-                </button>
-            </div>
-        </div>
+    function setStatus(key, state = '') {
+      const text = translate(copy.status[key] || { es: key, en: key });
+      statusPill.textContent = text;
+      statusPill.className = `status-pill ${state}`.trim();
+    }
 
-        <!-- Predicción -->
-        <div class="row center-align">
-            <div class="col s12">
-                <p id="prediction" class="prediction-text flow-text amber-text text-darken-3"></p>
-            </div>
-        </div>
-    </main>
+    function resetCanvas() {
+      ctx.fillStyle = '#0b1222';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      output.textContent = translate(copy.output.prompt);
+    }
 
-    <!-- Footer -->
-    <footer class="page-footer grey darken-4">
-        <div class="container center-align">
-            <p class="white-text">&copy; Predicción de Números. Ezequiel Isaac Rodriguez Tenorio.</p>
-        </div>
-    </footer>
+    function pointerPosition(e) {
+      const rect = canvas.getBoundingClientRect();
+      const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+      const y = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
+      return { x, y };
+    }
 
-    <!-- Script -->
-    <script>
-        let model;
+    function startDrawing(e) {
+      isDrawing = true;
+      const { x, y } = pointerPosition(e);
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+    }
 
-        // Configuración de canvas
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
-        let isDrawing = false;
+    function draw(e) {
+      if (!isDrawing) return;
+      e.preventDefault();
+      const { x, y } = pointerPosition(e);
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 12;
+      ctx.lineCap = 'round';
+      ctx.lineTo(x, y);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+    }
 
-        // Cargar el modelo TensorFlow.js
-        async function loadModel() {
-            model = await tf.loadLayersModel('/assets/numbers/model_numbers.json');
-            console.log("Modelo cargado.");
-            M.toast({
-                html: 'Modelo cargado exitosamente.',
-                classes: 'rounded green'
-            });
-        }
+    function stopDrawing() {
+      isDrawing = false;
+      ctx.beginPath();
+    }
 
-        // Funciones para dibujar en el canvas
-        function startDrawing(e) {
-            isDrawing = true;
-            ctx.beginPath();
-            draw(e);
-        }
+    async function loadModel() {
+      try {
+        await tf.ready();
+        model = await tf.loadLayersModel('{{ '/assets/numbers/model_numbers.json' | relative_url }}');
+        setStatus('ready', 'ready');
+        predictBtn.disabled = false;
+      } catch (error) {
+        console.error('Error loading model', error);
+        setStatus('error', 'error');
+      }
+    }
 
-        function draw(e) {
-            if (!isDrawing) return;
+    function preprocess() {
+      return tf.tidy(() => {
+        const temp = document.createElement('canvas');
+        temp.width = 28;
+        temp.height = 28;
+        const tctx = temp.getContext('2d');
+        tctx.drawImage(canvas, 0, 0, 28, 28);
+        const imgData = tctx.getImageData(0, 0, 28, 28);
+        const img = tf.browser.fromPixels(imgData, 1).toFloat().div(255);
+        return img.expandDims(0);
+      });
+    }
 
-            e.preventDefault();
-            const rect = canvas.getBoundingClientRect();
-            const x = (e.clientX || e.touches[0].clientX) - rect.left;
-            const y = (e.clientY || e.touches[0].clientY) - rect.top;
+    async function predict() {
+      if (!model) return;
+      const input = preprocess();
+      const prediction = model.predict(input);
+      const data = await prediction.data();
+      const idx = data.indexOf(Math.max(...data));
+      const label = translate(copy.output.result);
+      output.textContent = `${label}: ${idx}`;
+      tf.dispose([input, prediction]);
+    }
 
-            ctx.lineWidth = 8;
-            ctx.lineCap = 'round';
-            ctx.strokeStyle = 'white';
-            ctx.lineTo(x, y);
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.moveTo(x, y);
-        }
+    function attachDrawingEvents() {
+      ['mousedown', 'touchstart'].forEach(evt => canvas.addEventListener(evt, startDrawing));
+      ['mousemove', 'touchmove'].forEach(evt => canvas.addEventListener(evt, draw));
+      ['mouseup', 'mouseleave', 'touchend', 'touchcancel'].forEach(evt => canvas.addEventListener(evt, stopDrawing));
+    }
 
-        function stopDrawing() {
-            isDrawing = false;
-            ctx.beginPath();
-        }
+    predictBtn.addEventListener('click', predict);
+    clearBtn.addEventListener('click', resetCanvas);
 
-        // Eventos del mouse y touch
-        canvas.addEventListener('mousedown', startDrawing);
-        canvas.addEventListener('mousemove', draw);
-        canvas.addEventListener('mouseup', stopDrawing);
-        canvas.addEventListener('mouseleave', stopDrawing);
-        canvas.addEventListener('touchstart', startDrawing);
-        canvas.addEventListener('touchmove', draw);
-        canvas.addEventListener('touchend', stopDrawing);
+    attachDrawingEvents();
+    resetCanvas();
+    loadModel();
 
-        // Limpiar el canvas y el texto de predicción
-        function clearCanvas() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            document.getElementById('prediction').textContent = ""; // Limpiar predicción
-        }
-
-        // Predecir número
-        async function predict() {
-            const tensor = preprocessCanvas(canvas);
-            const prediction = await model.predict(tensor).data();
-            const result = Array.from(prediction).indexOf(Math.max(...prediction));
-            document.getElementById('prediction').textContent = "Número predicho: " + result;
-            M.toast({
-                html: `Número predicho: ${result}`,
-                classes: 'rounded orange darken-2'
-            });
-        }
-
-        // Preprocesar el canvas
-        function preprocessCanvas(canvas) {
-            const tmpCanvas = document.createElement('canvas');
-            const tmpCtx = tmpCanvas.getContext('2d');
-            tmpCanvas.width = 28; // Dimensiones requeridas por el modelo
-            tmpCanvas.height = 28;
-
-            tmpCtx.drawImage(canvas, 0, 0, 28, 28); // Redimensionar imagen
-
-            // Convertir a tensor de un solo canal
-            const imageData = tmpCtx.getImageData(0, 0, 28, 28);
-            let grayscale = [];
-            for (let i = 0; i < imageData.data.length; i += 4) {
-                grayscale.push(imageData.data[i] / 255); // Normalizamos a [0, 1]
-            }
-            return tf.tensor4d(grayscale, [1, 28, 28, 1]);
-        }
-
-        // Cargar el modelo al inicio
-        loadModel();
-    </script>
-</body>
-
-</html>
+    document.addEventListener('language:change', () => {
+      resetCanvas();
+      setStatus(model ? 'ready' : 'loading', model ? 'ready' : '');
+    });
+  });
+</script>
