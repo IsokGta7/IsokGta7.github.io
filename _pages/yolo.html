@@ -40,9 +40,9 @@ permalink: /yolo/
   </div>
 
   <div class="video-panel">
-    <div class="media-wrapper" style="position:relative;">
+    <div class="media-wrapper">
       <video id="yolo-video" autoplay playsinline muted width="640" height="480"></video>
-      <canvas id="yolo-canvas" width="640" height="480" style="position:absolute; inset:0;"></canvas>
+      <canvas id="yolo-canvas" class="overlay-canvas"></canvas>
     </div>
     <p class="subtle-text" data-i18n-en="Enable the camera and watch detections.">Activa la cámara y observa las detecciones.</p>
   </div>
@@ -63,6 +63,9 @@ permalink: /yolo/
     let rafId;
     let statusKey = 'loading';
     let statusState = '';
+    let displayWidth = 0;
+    let displayHeight = 0;
+    let deviceScale = 1;
 
     const copy = {
       status: {
@@ -112,6 +115,25 @@ permalink: /yolo/
       }
     }
 
+    function syncCanvasToVideo() {
+      const rect = video.getBoundingClientRect();
+      if (!rect.width || !rect.height) return;
+
+      displayWidth = rect.width;
+      displayHeight = rect.height;
+      deviceScale = window.devicePixelRatio || 1;
+
+      const scaledWidth = Math.round(displayWidth * deviceScale);
+      const scaledHeight = Math.round(displayHeight * deviceScale);
+
+      canvas.style.width = `${displayWidth}px`;
+      canvas.style.height = `${displayHeight}px`;
+      if (canvas.width !== scaledWidth || canvas.height !== scaledHeight) {
+        canvas.width = scaledWidth;
+        canvas.height = scaledHeight;
+      }
+    }
+
     function stopDetection() {
       if (rafId) cancelAnimationFrame(rafId);
       if (stream) {
@@ -131,6 +153,7 @@ permalink: /yolo/
         video.srcObject = stream;
         startBtn.disabled = true;
         stopBtn.disabled = false;
+        requestAnimationFrame(syncCanvasToVideo);
         renderLoop();
       } catch (error) {
         console.error('Camera permission needed', error);
@@ -150,11 +173,14 @@ permalink: /yolo/
     }
 
     function drawDetections(detections) {
+      if (!displayWidth || !displayHeight) return;
       const ctx = canvas.getContext('2d');
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.setTransform(deviceScale, 0, 0, deviceScale, 0, 0);
       ctx.strokeStyle = '#22d3ee';
-      ctx.lineWidth = 2;
-      ctx.font = '14px Inter';
+      ctx.lineWidth = 2 / deviceScale;
+      ctx.font = `${14 / deviceScale}px Inter`;
       ctx.fillStyle = 'rgba(17, 94, 89, 0.8)';
 
       detections.forEach(det => {
@@ -174,10 +200,10 @@ permalink: /yolo/
       const detections = [];
       for (let i = 0; i < validDetections[0]; i++) {
         const [y1, x1, y2, x2] = boxes[0][i];
-        const width = (x2 - x1) * canvas.width;
-        const height = (y2 - y1) * canvas.height;
-        const x = x1 * canvas.width;
-        const y = y1 * canvas.height;
+        const width = (x2 - x1) * displayWidth;
+        const height = (y2 - y1) * displayHeight;
+        const x = x1 * displayWidth;
+        const y = y1 * displayHeight;
         detections.push([x, y, width, height, scores[0][i], classes[0][i]]);
       }
       drawDetections(detections);
@@ -186,6 +212,11 @@ permalink: /yolo/
 
     async function renderLoop() {
       if (!model || !video.srcObject) return;
+      syncCanvasToVideo();
+      if (!displayWidth || !displayHeight) {
+        rafId = requestAnimationFrame(renderLoop);
+        return;
+      }
       rafId = requestAnimationFrame(renderLoop);
       const input = preprocessFrame();
       const result = await model.executeAsync(input);
@@ -195,6 +226,8 @@ permalink: /yolo/
 
     startBtn.addEventListener('click', startDetection);
     stopBtn.addEventListener('click', stopDetection);
+    video.addEventListener('loadedmetadata', syncCanvasToVideo);
+    window.addEventListener('resize', syncCanvasToVideo);
 
     window.addEventListener('beforeunload', stopDetection);
     setStatus('loading');
