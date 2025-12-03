@@ -42,7 +42,7 @@ permalink: /yolo/
   <div class="video-panel">
     <div class="media-wrapper" style="position:relative;">
       <video id="yolo-video" autoplay playsinline muted width="640" height="480"></video>
-      <canvas id="yolo-canvas" width="640" height="480" style="position:absolute; inset:0;"></canvas>
+      <canvas id="yolo-canvas" width="640" height="480" style="position:absolute; inset:0; width:100%; height:100%; pointer-events:none; background:transparent;"></canvas>
     </div>
     <p class="subtle-text" data-i18n-en="Enable the camera and watch detections.">Activa la cámara y observa las detecciones.</p>
   </div>
@@ -129,6 +129,7 @@ permalink: /yolo/
       try {
         stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } } });
         video.srcObject = stream;
+        syncCanvasSize();
         startBtn.disabled = true;
         stopBtn.disabled = false;
         renderLoop();
@@ -147,6 +148,17 @@ permalink: /yolo/
         frame.dispose();
         return expanded;
       });
+    }
+
+    function syncCanvasSize() {
+      const { videoWidth, videoHeight, clientWidth, clientHeight } = video;
+      if (!videoWidth || !videoHeight) return;
+
+      if (canvas.width !== videoWidth) canvas.width = videoWidth;
+      if (canvas.height !== videoHeight) canvas.height = videoHeight;
+
+      canvas.style.width = `${clientWidth || videoWidth}px`;
+      canvas.style.height = `${clientHeight || videoHeight}px`;
     }
 
     function drawDetections(detections) {
@@ -248,6 +260,7 @@ permalink: /yolo/
 
     async function renderLoop() {
       if (!model || !video.srcObject) return;
+      syncCanvasSize();
       rafId = requestAnimationFrame(renderLoop);
       const input = preprocessFrame();
       const result = await model.executeAsync(input);
@@ -259,6 +272,8 @@ permalink: /yolo/
     stopBtn.addEventListener('click', stopDetection);
 
     window.addEventListener('beforeunload', stopDetection);
+    video.addEventListener('loadedmetadata', syncCanvasSize);
+    window.addEventListener('resize', syncCanvasSize);
     setStatus('loading');
     loadModel();
 
