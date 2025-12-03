@@ -170,18 +170,80 @@ permalink: /yolo/
     }
 
     function processDetections(output) {
-      const [boxes, scores, classes, validDetections] = output.map(t => t.arraySync());
-      const detections = [];
-      for (let i = 0; i < validDetections[0]; i++) {
-        const [y1, x1, y2, x2] = boxes[0][i];
-        const width = (x2 - x1) * canvas.width;
-        const height = (y2 - y1) * canvas.height;
-        const x = x1 * canvas.width;
-        const y = y1 * canvas.height;
-        detections.push([x, y, width, height, scores[0][i], classes[0][i]]);
+      if (Array.isArray(output)) {
+        const [boxes, scores, classes, validDetections] = output.map(t => t.arraySync());
+        const detections = [];
+        for (let i = 0; i < validDetections[0]; i++) {
+          const [y1, x1, y2, x2] = boxes[0][i];
+          const width = (x2 - x1) * canvas.width;
+          const height = (y2 - y1) * canvas.height;
+          const x = x1 * canvas.width;
+          const y = y1 * canvas.height;
+          detections.push([x, y, width, height, scores[0][i], classes[0][i]]);
+        }
+        drawDetections(detections);
+        output.forEach(t => t.dispose());
+        return;
       }
+
+      const detections = tf.tidy(() => {
+        let predictions = output;
+
+        if (predictions.rank === 4) {
+          predictions = predictions.squeeze([0, 1]);
+        } else if (predictions.rank === 3) {
+          predictions = predictions.squeeze(0);
+        }
+
+        if (predictions.shape[0] < predictions.shape[1]) {
+          predictions = predictions.transpose();
+        }
+
+        const numBoxes = predictions.shape[0];
+        const numValues = predictions.shape[1];
+        const boxXYWH = predictions.slice([0, 0], [numBoxes, 4]);
+        const rawScores = predictions.slice([0, 4], [numBoxes, numValues - 4]);
+
+        let classScores;
+        if (rawScores.shape[1] > 80) {
+          const objectness = rawScores.slice([0, 0], [numBoxes, 1]);
+          const classes = rawScores.slice([0, 1], [numBoxes, -1]);
+          classScores = classes.mul(objectness);
+        } else {
+          classScores = rawScores;
+        }
+
+        const { values: topScores, indices: topClasses } = tf.topk(classScores, 1);
+        const scores = topScores.squeeze();
+        const classes = topClasses.squeeze();
+
+        const [cx, cy, w, h] = tf.split(boxXYWH, 4, 1);
+        const x1 = cx.sub(w.div(2));
+        const y1 = cy.sub(h.div(2));
+        const x2 = cx.add(w.div(2));
+        const y2 = cy.add(h.div(2));
+        const boxesForNms = tf.concat([y1, x1, y2, x2], 1);
+
+        const nmsIdx = tf.image.nonMaxSuppression(boxesForNms, scores, 20, 0.5, 0.2);
+        const finalBoxes = tf.gather(boxesForNms, nmsIdx).arraySync();
+        const finalScores = tf.gather(scores, nmsIdx).arraySync();
+        const finalClasses = tf.gather(classes, nmsIdx).arraySync();
+
+        const processed = [];
+        for (let i = 0; i < finalBoxes.length; i++) {
+          const [yMin, xMin, yMax, xMax] = finalBoxes[i];
+          const width = (xMax - xMin) * canvas.width;
+          const height = (yMax - yMin) * canvas.height;
+          const x = xMin * canvas.width;
+          const y = yMin * canvas.height;
+          processed.push([x, y, width, height, finalScores[i], finalClasses[i]]);
+        }
+
+        return processed;
+      });
+
       drawDetections(detections);
-      output.forEach(t => t.dispose());
+      if (output?.dispose) output.dispose();
     }
 
     async function renderLoop() {
