@@ -1,5 +1,6 @@
 (function() {
-  const AGENDA_PATH = '/agenda/';
+  const SITE_BASEURL = (window.SITE_BASEURL || document.querySelector('meta[name="site-baseurl"]')?.content || '').replace(/\/$/, '');
+  const AGENDA_PATH = `${SITE_BASEURL}/agenda/`;
   const shortcut = { first: 'k', second: 'l', windowMs: 900 };
   let awaitingSecond = false;
   let timerId = null;

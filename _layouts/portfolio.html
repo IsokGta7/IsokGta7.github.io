@@ -7,7 +7,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/styles/portfolio.css">
+  <link rel="stylesheet" href="{{ '/styles/portfolio.css' | relative_url }}">
+  <meta name="site-baseurl" content="{{ site.baseurl | default: '' }}">
+  <script>window.SITE_BASEURL = "{{ site.baseurl | default: '' }}";</script>
 </head>
 <body>
   <header class="hero">
@@ -292,7 +294,7 @@
     </div>
     <p class="footer__legal" data-i18n-en="© {{ site.time | date: \"%Y\" }} Ezequiel Isaac Rodríguez Tenorio">© {{ site.time | date: "%Y" }} Ezequiel Isaac Rodríguez Tenorio</p>
   </footer>
-  <script src="/assets/scripts/i18n.js"></script>
-  <script src="/assets/scripts/agenda.js"></script>
+  <script src="{{ '/assets/scripts/i18n.js' | relative_url }}"></script>
+  <script src="{{ '/assets/scripts/agenda.js' | relative_url }}"></script>
 </body>
 </html>
