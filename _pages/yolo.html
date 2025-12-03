@@ -63,9 +63,16 @@ permalink: /yolo/
     let rafId;
     let statusKey = 'loading';
     let statusState = '';
+    let videoWidth = 0;
+    let videoHeight = 0;
     let displayWidth = 0;
     let displayHeight = 0;
     let deviceScale = 1;
+    let inputScale = 1;
+    let padLeft = 0;
+    let padTop = 0;
+    let padRight = 0;
+    let padBottom = 0;
 
     const copy = {
       status: {
@@ -115,9 +122,27 @@ permalink: /yolo/
       }
     }
 
+    function updateVideoMetrics() {
+      if (!video.videoWidth || !video.videoHeight) return false;
+      const hasChanged = video.videoWidth !== videoWidth || video.videoHeight !== videoHeight;
+      videoWidth = video.videoWidth;
+      videoHeight = video.videoHeight;
+
+      inputScale = Math.min(TARGET / videoWidth, TARGET / videoHeight);
+      const scaledWidth = Math.round(videoWidth * inputScale);
+      const scaledHeight = Math.round(videoHeight * inputScale);
+      const padX = TARGET - scaledWidth;
+      const padY = TARGET - scaledHeight;
+      padLeft = Math.floor(padX / 2);
+      padRight = padX - padLeft;
+      padTop = Math.floor(padY / 2);
+      padBottom = padY - padTop;
+      return hasChanged;
+    }
+
     function syncCanvasToVideo() {
       const rect = video.getBoundingClientRect();
-      if (!rect.width || !rect.height) return;
+      if (!rect.width || !rect.height) return false;
 
       displayWidth = rect.width;
       displayHeight = rect.height;
@@ -131,7 +156,9 @@ permalink: /yolo/
       if (canvas.width !== scaledWidth || canvas.height !== scaledHeight) {
         canvas.width = scaledWidth;
         canvas.height = scaledHeight;
+        return true;
       }
+      return false;
     }
 
     function stopDetection() {
@@ -162,13 +189,15 @@ permalink: /yolo/
     }
 
     function preprocessFrame() {
+      if (!videoWidth || !videoHeight) updateVideoMetrics();
       return tf.tidy(() => {
         const frame = tf.browser.fromPixels(video);
-        const resized = tf.image.resizeBilinear(frame, [TARGET, TARGET]);
-        const normalized = resized.div(255.0);
-        const expanded = normalized.expandDims(0);
-        frame.dispose();
-        return expanded;
+        const targetWidth = Math.round(videoWidth * inputScale);
+        const targetHeight = Math.round(videoHeight * inputScale);
+        const resized = tf.image.resizeBilinear(frame, [targetHeight, targetWidth]);
+        const padded = tf.pad(resized, [[padTop, TARGET - targetHeight - padTop], [padLeft, TARGET - targetWidth - padLeft], [0, 0]]);
+        const normalized = padded.div(255.0);
+        return normalized.expandDims(0);
       });
     }
 
@@ -196,14 +225,27 @@ permalink: /yolo/
     }
 
     function processDetections(output) {
+      if (!videoWidth || !videoHeight) return;
+      const scaleX = displayWidth / videoWidth;
+      const scaleY = displayHeight / videoHeight;
       const [boxes, scores, classes, validDetections] = output.map(t => t.arraySync());
       const detections = [];
       for (let i = 0; i < validDetections[0]; i++) {
         const [y1, x1, y2, x2] = boxes[0][i];
-        const width = (x2 - x1) * displayWidth;
-        const height = (y2 - y1) * displayHeight;
-        const x = x1 * displayWidth;
-        const y = y1 * displayHeight;
+        const inputX1 = x1 * TARGET - padLeft;
+        const inputY1 = y1 * TARGET - padTop;
+        const inputX2 = x2 * TARGET - padLeft;
+        const inputY2 = y2 * TARGET - padTop;
+
+        const videoX1 = Math.max(0, inputX1 / inputScale);
+        const videoY1 = Math.max(0, inputY1 / inputScale);
+        const videoX2 = Math.min(videoWidth, inputX2 / inputScale);
+        const videoY2 = Math.min(videoHeight, inputY2 / inputScale);
+
+        const width = Math.max(0, videoX2 - videoX1) * scaleX;
+        const height = Math.max(0, videoY2 - videoY1) * scaleY;
+        const x = videoX1 * scaleX;
+        const y = videoY1 * scaleY;
         detections.push([x, y, width, height, scores[0][i], classes[0][i]]);
       }
       drawDetections(detections);
@@ -212,10 +254,15 @@ permalink: /yolo/
 
     async function renderLoop() {
       if (!model || !video.srcObject) return;
-      syncCanvasToVideo();
-      if (!displayWidth || !displayHeight) {
+      updateVideoMetrics();
+      const canvasChanged = syncCanvasToVideo();
+      if (!displayWidth || !displayHeight || !videoWidth || !videoHeight) {
         rafId = requestAnimationFrame(renderLoop);
         return;
+      }
+      if (canvasChanged) {
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
       }
       rafId = requestAnimationFrame(renderLoop);
       const input = preprocessFrame();
@@ -226,7 +273,10 @@ permalink: /yolo/
 
     startBtn.addEventListener('click', startDetection);
     stopBtn.addEventListener('click', stopDetection);
-    video.addEventListener('loadedmetadata', syncCanvasToVideo);
+    video.addEventListener('loadedmetadata', () => {
+      updateVideoMetrics();
+      syncCanvasToVideo();
+    });
     window.addEventListener('resize', syncCanvasToVideo);
 
     window.addEventListener('beforeunload', stopDetection);
