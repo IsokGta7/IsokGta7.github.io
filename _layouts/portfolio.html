@@ -14,9 +14,15 @@
 <body>
   <header class="hero">
     <div class="container hero__content">
+      <div class="controls">
       <button class="lang-toggle" type="button" data-lang-toggle aria-label="Cambiar idioma" data-i18n-aria-en="Change language">
         EN
       </button>
+      <button class="theme-toggle" type="button" data-theme-toggle aria-label="Cambiar tema" data-i18n-aria-en="Toggle color theme" title="Alternar tema">
+        <span class="theme-toggle__icon" aria-hidden="true">🌙</span>
+        <span class="theme-toggle__label" data-i18n-en="Dark mode">Modo oscuro</span>
+      </button>
+      </div>
       <div>
         <p class="eyebrow" data-i18n-en="Backend • AI • Applied research">Backend • IA • Investigación aplicada</p>
         <h1 data-i18n-en="Ezequiel Isaac Rodríguez Tenorio">Ezequiel Isaac Rodríguez Tenorio</h1>
@@ -294,6 +300,7 @@
     </div>
     <p class="footer__legal" data-i18n-en="© {{ site.time | date: \"%Y\" }} Ezequiel Isaac Rodríguez Tenorio">© {{ site.time | date: "%Y" }} Ezequiel Isaac Rodríguez Tenorio</p>
   </footer>
+  <script src="{{ '/assets/scripts/theme.js' | relative_url }}"></script>
   <script src="{{ '/assets/scripts/i18n.js' | relative_url }}"></script>
   <script src="{{ '/assets/scripts/agenda.js' | relative_url }}"></script>
 </body>
